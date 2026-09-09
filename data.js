@@ -15,9 +15,9 @@ const STEP_MS = 140;
 /* Half of a cut-screen transition (fade out, then fade in). */
 const FADE_MS = 220;
 
-/* Corridor travel direction. Easy to change later: {x:-1,y:0} for leftward,
+/* Corridor travel direction. Easy to change later: {x:1,y:0} for rightward,
    {x:0,y:-1} for upward, etc. The corridor map must match. */
-const CORRIDOR_DIR = { x: 1, y: 0 };
+const CORRIDOR_DIR = { x: 0, y: 1 };
 
 /* ---------------------------------------------------------------------------
    Tile legend (used by every map below)
@@ -27,6 +27,7 @@ const CORRIDOR_DIR = { x: 1, y: 0 };
      P  wayfinding signpost (arrow re-points as bosses fall)
      E  Level 3 secret exit (hidden until all 3 bosses are down)
      C  corridor end -> Castle
+     K  castle wall (solid)       G  castle gate — walk in to unlock the ending
    --------------------------------------------------------------------------- */
 
 /* Hub: paths arranged in a triangle — Level 1 lower-left, Level 2 lower-right,
@@ -75,21 +76,43 @@ function makeRoomMap(withExit) {
   ];
 }
 
-/* Corridor: one long lane, wider than the viewport so the camera scrolls. */
+/* Corridor: one long descent, taller than the viewport so the camera scrolls
+   down with her. She can only step downward here. */
 const CORRIDOR_MAP = [
-  '###############################',
-  '###############################',
-  '..............................C',
-  '###############################',
-  '###############################'
+  '###.###',
+  '###.###',
+  '###.###',
+  '###.###',
+  '###.###',
+  '###.###',
+  '###.###',
+  '###.###',
+  '###.###',
+  '###.###',
+  '###.###',
+  '###.###',
+  '###.###',
+  '###.###',
+  '###.###',
+  '###.###',
+  '###.###',
+  '###.###',
+  '###.###',
+  '###.###',
+  '###C###'
 ];
 
+/* Castle grounds. She arrives at the bottom and walks up to the gate. */
 const CASTLE_MAP = [
   '###############',
-  '#.............#',
-  '#.............#',
-  '#.............#',
-  '#.............#',
+  '#..KKKKKKKKK..#',
+  '#..KKKKKKKKK..#',
+  '#..KKKKKKKKK..#',
+  '#..KKKKKKKKK..#',
+  '#..KKKKKKKKK..#',
+  '#..KKKKKKKKK..#',
+  '#..KKKKKKKKK..#',
+  '#..KKKKGKKKK..#',
   '#.............#',
   '#.............#',
   '#.............#',
@@ -140,7 +163,7 @@ const STAGES = {
     id: 'corridor',
     name: 'Corridor',
     map: CORRIDOR_MAP,
-    spawn: { x: 0, y: 2 },
+    spawn: { x: 3, y: 0 },
     /* Movement in this stage is restricted to one axis+direction. */
     lockedDirection: CORRIDOR_DIR
   },
@@ -148,7 +171,10 @@ const STAGES = {
     id: 'castle',
     name: 'Castle',
     map: CASTLE_MAP,
-    spawn: { x: 7, y: 5 }
+    spawn: { x: 7, y: 13 },
+    /* Artwork drawn across a block of tiles; the tiles themselves are solid in
+       the map above. Relative path, so it works locally and once deployed. */
+    structure: { src: './pinkCastle.png', x: 3, y: 1, w: 9, h: 8 }
   }
 };
 

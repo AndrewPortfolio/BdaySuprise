@@ -18,6 +18,7 @@ const state = {
   /* UI / flow flags */
   dialogueBoss: null,   // boss index while a dialogue is open, else null
   inputLocked: false,   // true during transitions and victory beats
+  castleUnlocked: false,// set when she reaches the gate and the party starts
   worldVersion: 0       // bumped when the map's appearance changes (locks, doors)
 };
 
@@ -82,6 +83,8 @@ function tileClasses(ch, stage) {
     /* The Level 3 second exit is indistinguishable from wall until every boss
        is down; then it opens up as a separate door from the Hub entrance. */
     classes.push(allBossesDefeated() ? 'door door-exit' : 'wall');
+  } else if (ch === 'K' || ch === 'G') {
+    classes.push('castle-block');   // artwork covers these; no tile fill
   } else if (ch === 'P') {
     /* Points at whichever shop is open next; -1 (all done) leaves it pointing
        up, toward Level 3 and the way onward. */
@@ -113,6 +116,17 @@ function buildStage(stage) {
       stageEl.appendChild(tile);
     }
   }
+  if (stage.structure) {
+    const art = document.createElement('div');
+    art.className = 'structure';
+    art.style.left = stage.structure.x * TILE + 'px';
+    art.style.top = stage.structure.y * TILE + 'px';
+    art.style.width = stage.structure.w * TILE + 'px';
+    art.style.height = stage.structure.h * TILE + 'px';
+    art.style.backgroundImage = 'url(' + stage.structure.src + ')';
+    stageEl.appendChild(art);
+  }
+
   stageEl.appendChild(playerEl);
 
   rendered.scene = stage.id;
@@ -193,8 +207,6 @@ function transitionTo(sceneId) {
     state.cameraOffset = { x: 0, y: 0 };
     state.dialogueBoss = null;
     render({ instant: true });
-
-    if (sceneId === 'castle') startCastle();
 
     fadeEl.classList.remove('on');
     setTimeout(function () { state.inputLocked = false; }, FADE_MS);
@@ -279,6 +291,8 @@ function tryStep(dx, dy) {
     return; // the boss tile is never walked onto
   }
 
+  if (ch === 'K') return;                 // castle walls
+  if (ch === 'G') { unlockCastle(); return; }
   if (ch === 'D') { transitionTo('hub'); return; }
   if (ch === 'C') { transitionTo('castle'); return; }
 
@@ -350,6 +364,14 @@ dialogueEl.addEventListener('click', function (e) {
 /* --- castle: fireworks + banner ------------------------------------------- */
 let replayArmed = false;
 
+/* She has reached the gate: unlock the castle and set the celebration off. */
+function unlockCastle() {
+  if (state.castleUnlocked) return;
+  state.castleUnlocked = true;
+  playSound('castle-unlock');
+  startCastle();
+}
+
 function buildFireworks() {
   fireworksEl.innerHTML = '';
   for (let b = 0; b < 6; b++) {
@@ -387,6 +409,7 @@ function replay() {
   fireworksEl.hidden = true;
   bannerEl.hidden = true;
   state.bossesDefeated = [false, false, false];
+  state.castleUnlocked = false;
   state.worldVersion++;
   transitionTo('hub');
 }

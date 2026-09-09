@@ -63,7 +63,7 @@ body {
 #stage[data-scene="level2"]   { --ground: #f5ebe2; }
 #stage[data-scene="level3"]   { --ground: #efe7f5; }
 #stage[data-scene="corridor"] { --ground: #e8e6e0; }
-#stage[data-scene="castle"]   { --ground: #f7f0dd; }
+#stage[data-scene="castle"]   { --ground: #FFF5F7; }
 
 #stage.no-tween,
 #player.no-tween { transition: none; }
@@ -79,6 +79,21 @@ body {
 
 /* Floor is a hole onto the stage ground — no fill, no outline, no seam. */
 .floor { background: none; }
+
+/* Tiles under a piece of stage artwork: solid to walk into, but never painted. */
+.castle-block { background: none; }
+
+/* Stage artwork spanning a block of tiles. pinkCastle.png has no alpha channel,
+   so multiply drops its white background onto the ground instead of stamping a
+   white box over it. */
+.structure {
+  position: absolute;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  mix-blend-mode: multiply;
+  z-index: 2;
+}
 
 /* Walls are a flat continuous mass — adjacent wall tiles share an edge with
    nothing drawn on it, so the whole block reads as one shape, not tiles. */
@@ -238,11 +253,12 @@ body {
 }
 
 #banner {
+  /* Sits low so the castle and the player stay visible during the finale. */
   position: absolute;
   z-index: 25;
   left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  bottom: 18px;
+  transform: translateX(-50%);
   width: 84%;
   padding: 18px 16px;
   background: rgba(15, 24, 15, .92);
