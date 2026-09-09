@@ -82,6 +82,11 @@ function tileClasses(ch, stage) {
     /* The Level 3 second exit is indistinguishable from wall until every boss
        is down; then it opens up as a separate door from the Hub entrance. */
     classes.push(allBossesDefeated() ? 'door door-exit' : 'wall');
+  } else if (ch === 'P') {
+    /* Points at whichever shop is open next; -1 (all done) leaves it pointing
+       up, toward Level 3 and the way onward. */
+    const next = state.bossesDefeated.indexOf(false);
+    classes.push('signpost', 'point-' + (next === 0 ? 'left' : next === 1 ? 'right' : 'up'));
   } else if (HUB_PATHS[ch]) {
     classes.push('door', 'path', 'path-' + ch);
     if (!pathUnlocked(ch)) classes.push('locked');
@@ -89,12 +94,6 @@ function tileClasses(ch, stage) {
     classes.push('floor');
   }
   return classes.join(' ');
-}
-
-/* Stable pseudo-random 0..n-1 for a tile coordinate. */
-function variantOf(x, y, n) {
-  const v = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
-  return Math.floor((v - Math.floor(v)) * n);
 }
 
 function buildStage(stage) {
@@ -111,9 +110,6 @@ function buildStage(stage) {
     for (let x = 0; x < cols; x++) {
       const tile = document.createElement('div');
       tile.className = tileClasses(tileAt(stage, x, y), stage);
-      /* Deterministic variety so a run of signs never falls into a rhythm.
-         A plain modulo cycles visibly; hashing the coords does not. */
-      if (tile.classList.contains('wall')) tile.classList.add('v' + variantOf(x, y, SIGN_COLORS.length));
       stageEl.appendChild(tile);
     }
   }
@@ -276,7 +272,7 @@ function tryStep(dx, dy) {
   const ty = state.playerTile.y + dy;
   const ch = tileAt(stage, tx, ty);
 
-  if (ch === '#') return;
+  if (ch === '#' || ch === 'P') return;   // walls and signposts are solid
 
   if (ch === 'B') {
     if (!state.bossesDefeated[stage.boss]) openBossDialogue(stage.boss);

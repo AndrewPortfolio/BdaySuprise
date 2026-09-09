@@ -84,13 +84,14 @@ body {
    nothing drawn on it, so the whole block reads as one shape, not tiles. */
 .wall { background-color: #3b4250; }
 
-/* The lobby is ringed by storefronts: each boundary tile is a vertical sign
-   standing on the same ground, so no wall colour and no tile edges show. */
-#stage[data-scene="hub"] .wall { background-color: transparent; }
-#stage[data-scene="hub"] .wall.v0 { background-image: var(--sprite-sign0); }
-#stage[data-scene="hub"] .wall.v1 { background-image: var(--sprite-sign1); }
-#stage[data-scene="hub"] .wall.v2 { background-image: var(--sprite-sign2); }
-#stage[data-scene="hub"] .wall.v3 { background-image: var(--sprite-sign3); }
+/* The lobby boundary: pink, dark enough to read as an edge against the
+   off-white floor without competing with the signpost or the storefronts. */
+#stage[data-scene="hub"] .wall { background-color: #FFB6C1; }
+
+/* Wayfinding signpost: one board that re-points as each shop opens. */
+.signpost { background-image: var(--sprite-signArrowSide); }
+.signpost.point-right { transform: scaleX(-1); }
+.signpost.point-up { background-image: var(--sprite-signArrowUp); }
 
 /* The three ways out of the lobby are shop entrances, colour-coded per level. */
 .path-1 { background-image: var(--sprite-store1); }

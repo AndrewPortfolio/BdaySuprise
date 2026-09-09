@@ -24,6 +24,7 @@ const CORRIDOR_DIR = { x: 1, y: 0 };
      #  wall                     .  floor
      1  path to Level 1          2  path to Level 2       3  path to Level 3
      D  door back to the Hub     B  boss marker
+     P  wayfinding signpost (arrow re-points as bosses fall)
      E  Level 3 secret exit (hidden until all 3 bosses are down)
      C  corridor end -> Castle
    --------------------------------------------------------------------------- */
@@ -52,7 +53,7 @@ const HUB_MAP = [
   '#1...................2#',
   '##...................##',
   '###.................###',
-  '####...............####',
+  '####......P........####',
   '#####.............#####',
   '#######################'
 ];

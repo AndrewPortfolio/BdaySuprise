@@ -9,39 +9,20 @@
 const PALETTE = {
   '.': null,                    // transparent
   K: 'rgba(0,0,0,0.16)',        // ground shadow
-  A: '#d9534f',                 // sign face (recoloured per storefront)
+  A: '#6b7280',                 // sign board (recoloured per storefront awning)
   p: '#9aa0ab',                 // sign post
   d: '#2b3040',                 // shop interior / glass
   X: '#22222c',                 // sprite outline
   S: '#f2c795',                 // skin
   E: '#2a2a35',                 // eye
-  W: '#fdfdfd',                 // cap brim
-  R: '#d9534f',                 // cap
-  H: '#6b4423',                 // hair
-  N: '#3f5bb5',                 // shirt
-  P: '#39405a'                  // trousers
+  W: '#fdfdfd',                 // white detail
+  H: '#3d2a1d',                 // dark brown hair
+  h: '#543926',                 // hair highlight / centre part
+  N: '#17171c',                 // black tube top
+  P: '#D3D3D3'                  // light grey sweats
 };
 
 const SPRITES = {
-  /* A vertical storefront sign: board with stacked lettering, on a post. */
-  sign: [
-    '....XXXXXXXX....',
-    '....XAAAAAAX....',
-    '....XAWWWWAX....',
-    '....XAWWWWAX....',
-    '....XAAAAAAX....',
-    '....XAWWWWAX....',
-    '....XAWWWWAX....',
-    '....XAAAAAAX....',
-    '....XAWWWWAX....',
-    '....XAWWWWAX....',
-    '....XAAAAAAX....',
-    '....XXXXXXXX....',
-    '......XppX......',
-    '......XppX......',
-    '.....XXppXX.....',
-    '....KKKKKKKK....'
-  ],
   /* A shop entrance: striped awning over a glass door. Used for the three
      paths out of the lobby, recoloured per destination. */
   store: [
@@ -62,60 +43,98 @@ const SPRITES = {
     '....KKKKKKKK....',
     '................'
   ],
+  /* Wayfinding sign: horizontal board on a post. The side version points left
+     and is mirrored in CSS to point right. */
+  signArrowSide: [
+    '................',
+    '.XXXXXXXXXXXXXX.',
+    '.XAAAAAAAAAAAAX.',
+    '.XAAAAWAAAAAAAX.',
+    '.XAAAWWAAAAAAAX.',
+    '.XAAWWWWWWWWWAX.',
+    '.XAAAWWAAAAAAAX.',
+    '.XAAAAWAAAAAAAX.',
+    '.XAAAAAAAAAAAAX.',
+    '.XXXXXXXXXXXXXX.',
+    '.......XX.......',
+    '.......XX.......',
+    '.......XX.......',
+    '......XXXX......',
+    '....KKKKKKKK....',
+    '................'
+  ],
+  signArrowUp: [
+    '................',
+    '.XXXXXXXXXXXXXX.',
+    '.XAAAAAAAAAAAAX.',
+    '.XAAAAAAWAAAAAX.',
+    '.XAAAAAWWWAAAAX.',
+    '.XAAAAWWWWWAAAX.',
+    '.XAAAAAAWAAAAAX.',
+    '.XAAAAAAWAAAAAX.',
+    '.XAAAAAAAAAAAAX.',
+    '.XXXXXXXXXXXXXX.',
+    '.......XX.......',
+    '.......XX.......',
+    '.......XX.......',
+    '......XXXX......',
+    '....KKKKKKKK....',
+    '................'
+  ],
   /* Player, one sprite per facing. Right is the left sprite mirrored in CSS. */
   playerDown: [
     '................',
-    '.....XXXXXX.....',
-    '....XRRRRRRX....',
-    '...XRRRRRRRRX...',
-    '...XWWWWWWWWX...',
-    '...XSSSSSSSSX...',
-    '...XSEESSEESX...',
-    '...XSSSSSSSSX...',
-    '....XSSSSSSX....',
-    '...XNNNNNNNNX...',
-    '..XSNNNNNNNNSX..',
-    '..XSNNNNNNNNSX..',
-    '...XNNNNNNNNX...',
-    '...XPPPPPPPPX...',
-    '...XPPPXXPPPX...',
-    '...XXX..XXX.....'
+    '.....HHHHHH.....',
+    '....HHhhhhHH....',
+    '....HHSSSSHH....',
+    '....HHSESEHH....',
+    '....HHSSSSHH....',
+    '.....HSSSSH.....',
+    '.....HSSSSH.....',
+    '...HHSSSSSSHH...',
+    '...XHSNNNNSHX...',
+    '...XHSNNNNSHX...',
+    '....XSNNNNSX....',
+    '....XPPPPPPX....',
+    '....XPPXXPPX....',
+    '....XPPXXPPX....',
+    '....XXX..XXX....'
   ],
   playerUp: [
     '................',
-    '.....XXXXXX.....',
-    '....XRRRRRRX....',
-    '...XRRRRRRRRX...',
-    '...XRRRRRRRRX...',
+    '.....HHHHHH.....',
+    '....HHhhhhHH....',
+    '....HHhhhhHH....',
+    '....HHHhhHHH....',
+    '....HHHHHHHH....',
+    '.....HHHHHH.....',
+    '.....HHHHHH.....',
+    '...HHHHHHHHHH...',
     '...XHHHHHHHHX...',
-    '...XHHHHHHHHX...',
-    '...XHHHHHHHHX...',
-    '....XHHHHHHX....',
-    '...XNNNNNNNNX...',
-    '..XSNNNNNNNNSX..',
-    '..XSNNNNNNNNSX..',
-    '...XNNNNNNNNX...',
-    '...XPPPPPPPPX...',
-    '...XPPPXXPPPX...',
-    '...XXX..XXX.....'
+    '...XSHHHHHHSX...',
+    '....XSHHHHSX....',
+    '....XPPPPPPX....',
+    '....XPPXXPPX....',
+    '....XPPXXPPX....',
+    '....XXX..XXX....'
   ],
   playerSide: [
     '................',
-    '.....XXXXX......',
-    '....XRRRRRX.....',
-    '...XRRRRRRRX....',
-    '..XWWXRRRRRX....',
-    '...XSSSSSSX.....',
-    '...XSESSSSX.....',
-    '...XSSSSSSX.....',
-    '....XSSSSX......',
-    '...XNNNNNNX.....',
-    '..XSNNNNNNX.....',
-    '..XSNNNNNNX.....',
-    '...XNNNNNNX.....',
-    '...XPPPPPPX.....',
-    '...XPPPPPPX.....',
-    '...XXXXXX.......'
+    '......HHHHH.....',
+    '.....HHhhHHH....',
+    '.....HSSSHHH....',
+    '.....HSESHHH....',
+    '.....HSSSHHH....',
+    '......HSSHHH....',
+    '......HSSHHH....',
+    '.....HHHHHHH....',
+    '.....XSNNHHX....',
+    '.....XSNNHHX....',
+    '.....XSNNNHX....',
+    '.....XPPPPPX....',
+    '.....XPPPPPX....',
+    '.....XPPPPPX....',
+    '.....XXXXXXX....'
   ]
 };
 
@@ -166,9 +185,6 @@ function makeGroundTexture() {
   return 'url(' + canvas.toDataURL() + ')';
 }
 
-/* Storefront colours. Add one and the hub picks it up automatically. */
-const SIGN_COLORS = ['#d9534f', '#3f7bb5', '#e0a13c', '#4f9d76'];
-
 /* Awning colour per destination: Level 1, Level 2, Level 3. */
 const STORE_COLORS = ['#6bbf7a', '#5a9fd4', '#c77fb5'];
 
@@ -178,9 +194,6 @@ function installSprites() {
   for (const name in SPRITES) {
     root.setProperty('--sprite-' + name, rasterize(SPRITES[name]));
   }
-  SIGN_COLORS.forEach(function (color, i) {
-    root.setProperty('--sprite-sign' + i, rasterize(SPRITES.sign, { A: color }));
-  });
   STORE_COLORS.forEach(function (color, i) {
     root.setProperty('--sprite-store' + (i + 1), rasterize(SPRITES.store, { A: color }));
   });
