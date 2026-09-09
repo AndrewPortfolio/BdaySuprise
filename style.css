@@ -1,0 +1,203 @@
+/* Placeholder art only — colored rectangles. Real art lands in a later phase.
+   Durations here mirror STEP_MS (140ms) and FADE_MS (220ms) in data.js. */
+
+:root {
+  --ink: #0f180f;
+  --frame: #1b2a1b;
+  --paper: #e8f0d8;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #10140f;
+  color: var(--paper);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+#game { text-align: center; }
+
+#viewport {
+  /* content-box so the frame border sits outside the 480x352 tile viewport —
+     otherwise a stage sized exactly to the viewport would scroll by the border. */
+  box-sizing: content-box;
+  position: relative;
+  overflow: hidden;
+  border: 6px solid var(--frame);
+  border-radius: 4px;
+  background: #000;
+  image-rendering: pixelated;
+}
+
+#hint {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: #6f7d63;
+}
+
+/* --- stage + tiles -------------------------------------------------------- */
+#stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  transition: transform 140ms linear; /* smooth camera scroll within a stage */
+}
+
+#stage.no-tween,
+#player.no-tween { transition: none; }
+
+.tile { width: 32px; height: 32px; }
+
+.wall  { background: #3c3f4a; box-shadow: inset 0 -3px 0 rgba(0,0,0,.35); }
+.floor { background: #7fa06a; box-shadow: inset 0 0 0 1px rgba(0,0,0,.07); }
+
+/* Per-scene floor tints so the rooms are easy to tell apart while testing. */
+#stage[data-scene="level1"]  .floor { background: #6f7fbf; }
+#stage[data-scene="level2"]  .floor { background: #bf7f6f; }
+#stage[data-scene="level3"]  .floor { background: #8a6fbf; }
+#stage[data-scene="corridor"] .floor { background: #55606b; }
+#stage[data-scene="castle"]  .floor { background: #b9a24a; }
+
+.door {
+  background: #d8c070;
+  box-shadow: inset 0 0 0 3px #8a6f28;
+}
+.door-hub    { background: #c9a24a; }
+.door-exit   { background: #7ce0a0; box-shadow: inset 0 0 0 3px #2b7a4b; }
+.door-castle { background: #e8d8a0; }
+
+.path-1 { background: #7fd8a0; }
+.path-2 { background: #7fb8e8; }
+.path-3 { background: #e8b0d8; }
+
+/* Locked paths are dimmed and barred, and refuse to transition. */
+.locked {
+  filter: saturate(.25) brightness(.55);
+  background-image: repeating-linear-gradient(
+    45deg, rgba(0,0,0,.55) 0 4px, transparent 4px 9px
+  );
+}
+
+.boss {
+  background: #e05a5a;
+  box-shadow: inset 0 0 0 4px #7a1e1e;
+}
+.boss.defeated { filter: grayscale(1) brightness(.5); }
+
+#player {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 32px;
+  height: 32px;
+  z-index: 5;
+  transition: transform 140ms linear; /* tile-snapped steps, tweened visually */
+}
+#player::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 3px;
+  background: #f4f0e0;
+  box-shadow: inset 0 -6px 0 #b03a5a, 0 2px 0 rgba(0,0,0,.4);
+}
+
+/* --- overlays ------------------------------------------------------------- */
+#fade {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms linear; /* hard cut-screen between stages */
+}
+#fade.on { opacity: 1; }
+
+#toast {
+  position: absolute;
+  z-index: 30;
+  left: 50%;
+  top: 14px;
+  transform: translateX(-50%);
+  padding: 7px 14px;
+  font-size: 12px;
+  color: var(--paper);
+  background: rgba(15, 24, 15, .92);
+  border: 2px solid var(--paper);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+#dialogue {
+  position: absolute;
+  z-index: 30;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  padding: 12px 14px;
+  text-align: left;
+  background: var(--paper);
+  color: var(--ink);
+  border: 4px solid var(--frame);
+  border-radius: 4px;
+}
+#dialogue p { margin: 0 0 10px; font-size: 13px; }
+
+#dialogue-choices { display: flex; gap: 10px; }
+#dialogue-choices button {
+  flex: 0 0 auto;
+  padding: 6px 18px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: #fff;
+  border: 3px solid var(--frame);
+  border-radius: 3px;
+  cursor: pointer;
+}
+#dialogue-choices button:hover { background: #cfe0b0; }
+
+/* --- castle: fireworks + banner ------------------------------------------- */
+#fireworks {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+.burst { position: absolute; width: 0; height: 0; }
+.burst i {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  margin: -3px;
+  border-radius: 50%;
+  background: hsl(var(--hue) 90% 62%);
+  animation: pop 1.8s var(--burst-delay) infinite ease-out;
+}
+@keyframes pop {
+  0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+  70%  { opacity: .85; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(.25); opacity: 0; }
+}
+
+#banner {
+  position: absolute;
+  z-index: 25;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 84%;
+  padding: 18px 16px;
+  background: rgba(15, 24, 15, .92);
+  border: 4px solid var(--paper);
+  border-radius: 4px;
+}
+#banner h1 { margin: 0; font-size: 17px; line-height: 1.5; }
+#banner p  { margin: 10px 0 0; font-size: 11px; color: #9fb08d; }
