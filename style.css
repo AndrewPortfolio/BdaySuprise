@@ -1,0 +1,366 @@
+/* Placeholder art only — colored rectangles. Real art lands in a later phase.
+   Durations here mirror STEP_MS (140ms) and FADE_MS (220ms) in data.js. */
+
+:root {
+  --ink: #0f180f;
+  --frame: #1b2a1b;
+  --paper: #e8f0d8;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #171a1f;
+  color: var(--paper);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+#game { text-align: center; }
+
+#viewport {
+  /* content-box so the frame border sits outside the 480x352 tile viewport —
+     otherwise a stage sized exactly to the viewport would scroll by the border. */
+  box-sizing: content-box;
+  position: relative;
+  overflow: hidden;
+  border: 6px solid var(--frame);
+  border-radius: 4px;
+  background: #23272f;
+  image-rendering: pixelated;
+}
+
+#hint {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: #6f7d63;
+}
+
+/* --- stage + tiles -------------------------------------------------------- */
+/* The ground is painted ONCE on the stage, not per tile — that is what removes
+   the visible grid. Floor tiles are transparent holes onto this surface, and
+   the speck texture repeats on a 112px pitch that does not divide TILE, so the
+   repeat never lines up with tile edges. */
+#stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  transition: transform 140ms linear; /* smooth camera scroll within a stage */
+
+  background-color: var(--ground);
+  background-image: var(--ground-texture);
+  background-repeat: repeat;
+}
+
+/* Per-stage ground. The Hub is the off-white lobby. */
+#stage[data-scene="hub"]      { --ground: #FAF9F6; }
+#stage[data-scene="level1"]   { --ground: #e6ecf5; }
+#stage[data-scene="level2"]   { --ground: #f5ebe2; }
+#stage[data-scene="level3"]   { --ground: #efe7f5; }
+#stage[data-scene="corridor"] { --ground: #e8e6e0; }
+#stage[data-scene="castle"]   { --ground: #FFF5F7; }
+
+#stage.no-tween,
+#player.no-tween { transition: none; }
+
+.tile {
+  width: 48px;
+  height: 48px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 48px 48px;
+  image-rendering: pixelated;
+}
+
+/* Floor is a hole onto the stage ground — no fill, no outline, no seam. */
+.floor { background: none; }
+
+/* Tiles under a piece of stage artwork: solid to walk into, but never painted. */
+.castle-block { background: none; }
+
+/* Stage artwork spanning a block of tiles. pinkCastle.png has no alpha channel,
+   so multiply drops its white background onto the ground instead of stamping a
+   white box over it. */
+.structure {
+  position: absolute;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  mix-blend-mode: multiply;
+  z-index: 2;
+}
+
+/* Walls are a flat continuous mass — adjacent wall tiles share an edge with
+   nothing drawn on it, so the whole block reads as one shape, not tiles. */
+.wall { background-color: #3b4250; }
+
+/* The lobby boundary: pink, dark enough to read as an edge against the
+   off-white floor without competing with the signpost or the storefronts. */
+#stage[data-scene="hub"] .wall { background-color: #FFB6C1; }
+
+/* Wayfinding signpost: one board that re-points as each shop opens. */
+.signpost { background-image: var(--sprite-signArrowSide); }
+.signpost.point-right { transform: scaleX(-1); }
+.signpost.point-up { background-image: var(--sprite-signArrowUp); }
+
+/* The three ways out of the lobby are shop entrances, colour-coded per level. */
+.path-1 { background-image: var(--sprite-store1); }
+.path-2 { background-image: var(--sprite-store2); }
+.path-3 { background-image: var(--sprite-store3); }
+
+/* A locked shop is shuttered: drained of colour and barred across the front. */
+.locked { filter: grayscale(1) brightness(.78); position: relative; }
+.locked::after {
+  content: "";
+  position: absolute;
+  inset: 3px 6px 6px 6px;   /* matches the storefront within the 48px tile */
+  background: repeating-linear-gradient(
+    45deg, rgba(40, 40, 46, .85) 0 5px, rgba(150, 150, 158, .85) 5px 10px
+  );
+}
+
+/* Doorways sit in the wall band, so they are drawn as openings. */
+.door-hub,
+.door-exit,
+.door-castle {
+  background-color: #2b3040;
+  background-image: linear-gradient(#1a1e2a 0 62%, #4a5064 62% 100%);
+  box-shadow: inset 0 0 0 4px #6b7286, inset 0 -6px 0 rgba(0, 0, 0, .35);
+}
+.door-exit {
+  background-image: linear-gradient(#123024 0 62%, #2f8b4c 62% 100%);
+  box-shadow: inset 0 0 0 4px #66c46e, 0 0 14px rgba(102, 196, 110, .55);
+}
+.door-castle {
+  background-image: linear-gradient(#3a2c12 0 62%, #c9a24a 62% 100%);
+  box-shadow: inset 0 0 0 4px #e8d8a0;
+}
+
+/* Boss markers. Each boss carries its own id as a class, so giving one real
+   art is a single rule here — boss-2 and boss-3 keep the placeholder blob. */
+.boss { background-size: 48px 48px; }
+.boss-1 { background-image: var(--sprite-bossMannequin); }
+.boss-2,
+.boss-3 {
+  background-image:
+    radial-gradient(circle at 38% 32%, #ff9a8a 0 12%, rgba(255, 154, 138, 0) 45%),
+    radial-gradient(circle at 50% 55%, #d64b4b 0 40%, #7a1e1e 41% 62%, rgba(0, 0, 0, 0) 64%);
+}
+.boss.defeated { filter: grayscale(1) brightness(.65) opacity(.65); }
+
+/* The same art, larger, for the portrait in the fight panel. */
+#battle-portrait.boss-1 { background-image: var(--sprite-bossMannequin); }
+#battle-portrait.boss-2,
+#battle-portrait.boss-3 {
+  background-image:
+    radial-gradient(circle at 38% 32%, #ff9a8a 0 12%, rgba(255, 154, 138, 0) 45%),
+    radial-gradient(circle at 50% 55%, #d64b4b 0 40%, #7a1e1e 41% 62%, rgba(0, 0, 0, 0) 64%);
+}
+
+#player {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 48px;
+  height: 48px;
+  z-index: 5;
+  transition: transform 140ms linear; /* tile-snapped steps, tweened visually */
+}
+/* The sprite lives on ::after so facing-right can mirror it without fighting
+   the translate() that positions the player. */
+#player::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--sprite-playerDown) no-repeat center / 48px 48px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 2px 1px rgba(0, 0, 0, .28));
+}
+#player[data-facing="up"]::after    { background-image: var(--sprite-playerUp); }
+#player[data-facing="left"]::after  { background-image: var(--sprite-playerSide); }
+#player[data-facing="right"]::after { background-image: var(--sprite-playerSide); transform: scaleX(-1); }
+
+/* Outfits — set by boss rewards, one variable swap per facing. Add an outfit to
+   OUTFITS in data.js and add its three rules here. */
+#player[data-outfit="pinkSweats"]::after                      { background-image: var(--sprite-playerDown--pinkSweats); }
+#player[data-outfit="pinkSweats"][data-facing="up"]::after    { background-image: var(--sprite-playerUp--pinkSweats); }
+#player[data-outfit="pinkSweats"][data-facing="left"]::after  { background-image: var(--sprite-playerSide--pinkSweats); }
+#player[data-outfit="pinkSweats"][data-facing="right"]::after { background-image: var(--sprite-playerSide--pinkSweats); }
+
+/* --- overlays ------------------------------------------------------------- */
+#fade {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms linear; /* hard cut-screen between stages */
+}
+#fade.on { opacity: 1; }
+
+#toast {
+  position: absolute;
+  z-index: 30;
+  left: 50%;
+  top: 14px;
+  transform: translateX(-50%);
+  padding: 7px 14px;
+  font-size: 12px;
+  color: var(--paper);
+  background: rgba(15, 24, 15, .92);
+  border: 2px solid var(--paper);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+#battle {
+  position: absolute;
+  z-index: 30;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  padding: 12px 14px;
+  text-align: left;
+  background: var(--paper);
+  color: var(--ink);
+  border: 4px solid var(--frame);
+  border-radius: 4px;
+}
+
+/* Boss portrait + name + hp bar, across the top of the panel. */
+#battle-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+
+#battle-portrait {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  background: no-repeat center / contain;
+  image-rendering: pixelated;
+}
+
+#battle-meta { flex: 1 1 auto; min-width: 0; }
+#battle-name { margin: 0 0 5px; font-size: 12px; letter-spacing: .04em; }
+
+#battle-hp {
+  height: 12px;
+  background: #cbd6b4;
+  border: 2px solid var(--frame);
+  border-radius: 2px;
+  overflow: hidden;
+}
+#battle-hp-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(#ff7fa8, #d63f6e);
+  transition: width 320ms ease-out;   /* the bar drains, it does not jump */
+}
+#battle-hp-fill.empty { background: #8a8f80; }
+
+#battle-hp-num { margin: 4px 0 0; font-size: 10px; color: #5c6b52; }
+
+/* What she is saying right now. Fixed height so the panel never jumps as the
+   lines change length. */
+#battle-text {
+  margin: 0 0 8px;
+  min-height: 34px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+#battle-ask {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 8px;
+  background: #fff;
+  border: 2px solid var(--frame);
+  border-radius: 3px;
+}
+
+/* Four answers in a 2x2 grid — reads as a menu, fits without scrolling. */
+#battle-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#battle-choices button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--ink);
+  background: #fff;
+  border: 3px solid var(--frame);
+  border-radius: 3px;
+  cursor: pointer;
+}
+#battle-choices button b {
+  flex: 0 0 auto;
+  width: 16px;
+  font-size: 10px;
+  color: #6f7d63;
+}
+#battle-choices button:hover { background: #cfe0b0; }
+/* Keyboard cursor. */
+#battle-choices button.selected {
+  background: #cfe0b0;
+  box-shadow: inset 0 0 0 2px var(--frame);
+}
+/* Already tried and wrong — still clickable, just visibly spent. */
+#battle-choices button.ruled-out {
+  color: #96a08c;
+  background: #e0e4d6;
+  text-decoration: line-through;
+}
+
+#battle-prompt {
+  margin: 2px 0 0;
+  font-size: 10px;
+  color: #6f7d63;
+  animation: blink 1.1s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: .25; } }
+
+/* --- castle: fireworks + banner ------------------------------------------- */
+#fireworks {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+.burst { position: absolute; width: 0; height: 0; }
+.burst i {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  margin: -3px;
+  border-radius: 50%;
+  background: hsl(var(--hue) 90% 62%);
+  animation: pop 1.8s var(--burst-delay) infinite ease-out;
+}
+@keyframes pop {
+  0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+  70%  { opacity: .85; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(.25); opacity: 0; }
+}
+
+#banner {
+  /* Sits low so the castle and the player stay visible during the finale. */
+  position: absolute;
+  z-index: 25;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  width: 84%;
+  padding: 18px 16px;
+  background: rgba(15, 24, 15, .92);
+  border: 4px solid var(--paper);
+  border-radius: 4px;
+}
+#banner h1 { margin: 0; font-size: 17px; line-height: 1.5; }
+#banner p  { margin: 10px 0 0; font-size: 11px; color: #9fb08d; }

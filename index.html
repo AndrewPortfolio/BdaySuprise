@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scavenger Hunt</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div id="game">
+    <!-- Fixed-size window into the current stage. Stages larger than this scroll. -->
+    <div id="viewport">
+      <div id="stage"></div>
+
+      <!-- Overlays, all positioned over the viewport -->
+      <div id="toast" hidden></div>
+
+      <!-- Boss fight. Built from BOSSES[] in data.js; hidden outside a fight. -->
+      <div id="battle" hidden>
+        <div id="battle-head">
+          <div id="battle-portrait"></div>
+          <div id="battle-meta">
+            <p id="battle-name"></p>
+            <div id="battle-hp"><span id="battle-hp-fill"></span></div>
+            <p id="battle-hp-num"></p>
+          </div>
+        </div>
+        <p id="battle-text"></p>
+        <p id="battle-ask" hidden></p>
+        <div id="battle-choices" hidden></div>
+        <p id="battle-prompt" hidden></p>
+      </div>
+
+      <div id="fireworks" hidden></div>
+
+      <div id="banner" hidden>
+        <h1 id="banner-text"></h1>
+        <p id="banner-sub">press any key to replay</p>
+      </div>
+
+      <div id="fade"></div>
+    </div>
+
+    <p id="hint">Arrow keys to move &middot; walk into a path, door or boss to interact</p>
+  </div>
+
+  <script src="./data.js"></script>
+  <script src="./sprites.js"></script>
+  <script src="./game.js"></script>
+</body>
+</html>
