@@ -15,7 +15,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #10140f;
+  background: #171a1f;
   color: var(--paper);
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
@@ -30,7 +30,7 @@ body {
   overflow: hidden;
   border: 6px solid var(--frame);
   border-radius: 4px;
-  background: #000;
+  background: #23272f;
   image-rendering: pixelated;
 }
 
@@ -41,72 +41,121 @@ body {
 }
 
 /* --- stage + tiles -------------------------------------------------------- */
+/* The ground is painted ONCE on the stage, not per tile — that is what removes
+   the visible grid. Floor tiles are transparent holes onto this surface, and
+   the speck texture repeats on a 112px pitch that does not divide TILE, so the
+   repeat never lines up with tile edges. */
 #stage {
   position: absolute;
   top: 0;
   left: 0;
   display: grid;
   transition: transform 140ms linear; /* smooth camera scroll within a stage */
+
+  background-color: var(--ground);
+  background-image: var(--ground-texture);
+  background-repeat: repeat;
 }
+
+/* Per-stage ground. The Hub is the off-white lobby. */
+#stage[data-scene="hub"]      { --ground: #FAF9F6; }
+#stage[data-scene="level1"]   { --ground: #e6ecf5; }
+#stage[data-scene="level2"]   { --ground: #f5ebe2; }
+#stage[data-scene="level3"]   { --ground: #efe7f5; }
+#stage[data-scene="corridor"] { --ground: #e8e6e0; }
+#stage[data-scene="castle"]   { --ground: #f7f0dd; }
 
 #stage.no-tween,
 #player.no-tween { transition: none; }
 
-.tile { width: 32px; height: 32px; }
-
-.wall  { background: #3c3f4a; box-shadow: inset 0 -3px 0 rgba(0,0,0,.35); }
-.floor { background: #7fa06a; box-shadow: inset 0 0 0 1px rgba(0,0,0,.07); }
-
-/* Per-scene floor tints so the rooms are easy to tell apart while testing. */
-#stage[data-scene="level1"]  .floor { background: #6f7fbf; }
-#stage[data-scene="level2"]  .floor { background: #bf7f6f; }
-#stage[data-scene="level3"]  .floor { background: #8a6fbf; }
-#stage[data-scene="corridor"] .floor { background: #55606b; }
-#stage[data-scene="castle"]  .floor { background: #b9a24a; }
-
-.door {
-  background: #d8c070;
-  box-shadow: inset 0 0 0 3px #8a6f28;
+.tile {
+  width: 48px;
+  height: 48px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 48px 48px;
+  image-rendering: pixelated;
 }
-.door-hub    { background: #c9a24a; }
-.door-exit   { background: #7ce0a0; box-shadow: inset 0 0 0 3px #2b7a4b; }
-.door-castle { background: #e8d8a0; }
 
-.path-1 { background: #7fd8a0; }
-.path-2 { background: #7fb8e8; }
-.path-3 { background: #e8b0d8; }
+/* Floor is a hole onto the stage ground — no fill, no outline, no seam. */
+.floor { background: none; }
 
-/* Locked paths are dimmed and barred, and refuse to transition. */
-.locked {
-  filter: saturate(.25) brightness(.55);
-  background-image: repeating-linear-gradient(
-    45deg, rgba(0,0,0,.55) 0 4px, transparent 4px 9px
+/* Walls are a flat continuous mass — adjacent wall tiles share an edge with
+   nothing drawn on it, so the whole block reads as one shape, not tiles. */
+.wall { background-color: #3b4250; }
+
+/* The lobby is ringed by storefronts: each boundary tile is a vertical sign
+   standing on the same ground, so no wall colour and no tile edges show. */
+#stage[data-scene="hub"] .wall { background-color: transparent; }
+#stage[data-scene="hub"] .wall.v0 { background-image: var(--sprite-sign0); }
+#stage[data-scene="hub"] .wall.v1 { background-image: var(--sprite-sign1); }
+#stage[data-scene="hub"] .wall.v2 { background-image: var(--sprite-sign2); }
+#stage[data-scene="hub"] .wall.v3 { background-image: var(--sprite-sign3); }
+
+/* The three ways out of the lobby are shop entrances, colour-coded per level. */
+.path-1 { background-image: var(--sprite-store1); }
+.path-2 { background-image: var(--sprite-store2); }
+.path-3 { background-image: var(--sprite-store3); }
+
+/* A locked shop is shuttered: drained of colour and barred across the front. */
+.locked { filter: grayscale(1) brightness(.78); position: relative; }
+.locked::after {
+  content: "";
+  position: absolute;
+  inset: 3px 6px 6px 6px;   /* matches the storefront within the 48px tile */
+  background: repeating-linear-gradient(
+    45deg, rgba(40, 40, 46, .85) 0 5px, rgba(150, 150, 158, .85) 5px 10px
   );
 }
 
-.boss {
-  background: #e05a5a;
-  box-shadow: inset 0 0 0 4px #7a1e1e;
+/* Doorways sit in the wall band, so they are drawn as openings. */
+.door-hub,
+.door-exit,
+.door-castle {
+  background-color: #2b3040;
+  background-image: linear-gradient(#1a1e2a 0 62%, #4a5064 62% 100%);
+  box-shadow: inset 0 0 0 4px #6b7286, inset 0 -6px 0 rgba(0, 0, 0, .35);
 }
-.boss.defeated { filter: grayscale(1) brightness(.5); }
+.door-exit {
+  background-image: linear-gradient(#123024 0 62%, #2f8b4c 62% 100%);
+  box-shadow: inset 0 0 0 4px #66c46e, 0 0 14px rgba(102, 196, 110, .55);
+}
+.door-castle {
+  background-image: linear-gradient(#3a2c12 0 62%, #c9a24a 62% 100%);
+  box-shadow: inset 0 0 0 4px #e8d8a0;
+}
+
+/* Placeholder boss marker — Phase 2 swaps in a real sprite. */
+.boss {
+  background-image:
+    radial-gradient(circle at 38% 32%, #ff9a8a 0 12%, rgba(255, 154, 138, 0) 45%),
+    radial-gradient(circle at 50% 55%, #d64b4b 0 40%, #7a1e1e 41% 62%, rgba(0, 0, 0, 0) 64%);
+  background-size: 48px 48px;
+}
+.boss.defeated { filter: grayscale(1) brightness(.65) opacity(.65); }
 
 #player {
   position: absolute;
   top: 0;
   left: 0;
-  width: 32px;
-  height: 32px;
+  width: 48px;
+  height: 48px;
   z-index: 5;
   transition: transform 140ms linear; /* tile-snapped steps, tweened visually */
 }
+/* The sprite lives on ::after so facing-right can mirror it without fighting
+   the translate() that positions the player. */
 #player::after {
   content: "";
   position: absolute;
-  inset: 5px;
-  border-radius: 3px;
-  background: #f4f0e0;
-  box-shadow: inset 0 -6px 0 #b03a5a, 0 2px 0 rgba(0,0,0,.4);
+  inset: 0;
+  background: var(--sprite-playerDown) no-repeat center / 48px 48px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 2px 1px rgba(0, 0, 0, .28));
 }
+#player[data-facing="up"]::after    { background-image: var(--sprite-playerUp); }
+#player[data-facing="left"]::after  { background-image: var(--sprite-playerSide); }
+#player[data-facing="right"]::after { background-image: var(--sprite-playerSide); transform: scaleX(-1); }
 
 /* --- overlays ------------------------------------------------------------- */
 #fade {

@@ -4,11 +4,11 @@
    --------------------------------------------------------------------------- */
 
 /* Tile geometry. Everything on screen is a multiple of TILE. */
-const TILE = 32;
+const TILE = 48;   /* 16px sprites drawn at 3x — stays crisp, no half pixels */
 const VIEW_COLS = 15;
 const VIEW_ROWS = 11;
-const VIEW_W = TILE * VIEW_COLS; // 480
-const VIEW_H = TILE * VIEW_ROWS; // 352
+const VIEW_W = TILE * VIEW_COLS; // 720
+const VIEW_H = TILE * VIEW_ROWS; // 528
 
 /* How long a single tile-step takes (ms). Camera + player tween over this. */
 const STEP_MS = 140;
@@ -29,24 +29,32 @@ const CORRIDOR_DIR = { x: 1, y: 0 };
    --------------------------------------------------------------------------- */
 
 /* Hub: paths arranged in a triangle — Level 1 lower-left, Level 2 lower-right,
-   Level 3 at the top-center apex. 15x15 tiles, so it is taller than the
-   viewport and the camera scrolls vertically as she walks. */
+   Level 3 at the top-center apex. 23x23 tiles — larger than the viewport on
+   both axes, so the camera scrolls with her as she walks. */
 const HUB_MAP = [
-  '###############',
-  '######.3.######',
-  '######...######',
-  '#####.....#####',
-  '####.......####',
-  '###.........###',
-  '##...........##',
-  '#.............#',
-  '#.............#',
-  '#.............#',
-  '#.............#',
-  '#1...........2#',
-  '##...........##',
-  '###.........###',
-  '###############'
+  '#######################',
+  '##########.3.##########',
+  '##########...##########',
+  '#########.....#########',
+  '########.......########',
+  '#######.........#######',
+  '######...........######',
+  '#####.............#####',
+  '####...............####',
+  '###.................###',
+  '##...................##',
+  '#.....................#',
+  '#.....................#',
+  '#.....................#',
+  '#.....................#',
+  '#.....................#',
+  '#.....................#',
+  '#1...................2#',
+  '##...................##',
+  '###.................###',
+  '####...............####',
+  '#####.............#####',
+  '#######################'
 ];
 
 /* Level rooms are all the same shape: boss at the top, door back to the Hub at
@@ -104,7 +112,7 @@ const STAGES = {
     id: 'hub',
     name: 'Hub',
     map: HUB_MAP,
-    spawn: { x: 7, y: 13 }
+    spawn: { x: 11, y: 21 }
   },
   level1: {
     id: 'level1',

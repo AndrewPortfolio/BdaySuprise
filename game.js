@@ -14,6 +14,7 @@ const state = {
   bossesDefeated: [false, false, false],
   playerTile: { x: STAGES.hub.spawn.x, y: STAGES.hub.spawn.y },
   cameraOffset: { x: 0, y: 0 },
+  facing: 'down',       // which way the sprite looks; she turns even when blocked
   /* UI / flow flags */
   dialogueBoss: null,   // boss index while a dialogue is open, else null
   inputLocked: false,   // true during transitions and victory beats
@@ -90,6 +91,12 @@ function tileClasses(ch, stage) {
   return classes.join(' ');
 }
 
+/* Stable pseudo-random 0..n-1 for a tile coordinate. */
+function variantOf(x, y, n) {
+  const v = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+  return Math.floor((v - Math.floor(v)) * n);
+}
+
 function buildStage(stage) {
   const cols = stage.map[0].length;
   const rows = stage.map.length;
@@ -104,6 +111,9 @@ function buildStage(stage) {
     for (let x = 0; x < cols; x++) {
       const tile = document.createElement('div');
       tile.className = tileClasses(tileAt(stage, x, y), stage);
+      /* Deterministic variety so a run of signs never falls into a rhythm.
+         A plain modulo cycles visibly; hashing the coords does not. */
+      if (tile.classList.contains('wall')) tile.classList.add('v' + variantOf(x, y, SIGN_COLORS.length));
       stageEl.appendChild(tile);
     }
   }
@@ -140,6 +150,7 @@ function render(opts) {
     playerEl.classList.add('no-tween');
   }
 
+  playerEl.dataset.facing = state.facing;
   playerEl.style.transform =
     'translate(' + state.playerTile.x * TILE + 'px, ' + state.playerTile.y * TILE + 'px)';
 
@@ -248,6 +259,13 @@ function tryStep(dx, dy) {
   if (state.inputLocked || state.dialogueBoss !== null) return;
 
   const stage = stageOf();
+
+  /* She turns to face the way she is pushing even if the step is refused. */
+  const facing = dy < 0 ? 'up' : dy > 0 ? 'down' : dx < 0 ? 'left' : 'right';
+  if (state.facing !== facing) {
+    state.facing = facing;
+    render();
+  }
 
   /* Corridor-style stages only allow travel along one direction. */
   if (stage.lockedDirection && (dx !== stage.lockedDirection.x || dy !== stage.lockedDirection.y)) {
@@ -378,5 +396,6 @@ function replay() {
 }
 
 /* --- boot ----------------------------------------------------------------- */
+installSprites();
 render({ instant: true });
 requestAnimationFrame(step);
