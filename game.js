@@ -15,16 +15,63 @@ const state = {
   playerTile: { x: STAGES.hub.spawn.x, y: STAGES.hub.spawn.y },
   cameraOffset: { x: 0, y: 0 },
   facing: 'down',       // which way the sprite looks; she turns even when blocked
+  outfit: 'default',    // key into OUTFITS — swapped by boss rewards
   /* UI / flow flags */
-  dialogueBoss: null,   // boss index while a dialogue is open, else null
+  battle: null,         // the live fight object while one is open, else null
   inputLocked: false,   // true during transitions and victory beats
   castleUnlocked: false,// set when she reaches the gate and the party starts
   worldVersion: 0       // bumped when the map's appearance changes (locks, doors)
 };
 
-/* --- Phase 3 hook: real audio gets wired in here, nothing else changes ---- */
+/* --- Phase 3 hook: real sound effects get wired in here ------------------- */
 function playSound(name) {
   console.log('[playSound]', name);
+}
+
+/* --- looping music --------------------------------------------------------
+   One track at a time. Browsers refuse to start audio before the page has seen
+   a real user gesture, so a rejected play() is remembered and retried on her
+   next keypress — by then she has certainly pressed something. */
+const trackCache = {};
+let currentTrack = null;
+let blockedTrack = null;
+
+function getTrack(src) {
+  if (!trackCache[src]) {
+    const audio = new Audio(src);
+    audio.loop = true;
+    audio.volume = 0.55;
+    trackCache[src] = audio;
+  }
+  return trackCache[src];
+}
+
+function playLoop(src) {
+  if (currentTrack && currentTrack.src === src) return; // already running
+  stopLoop();
+  const audio = getTrack(src);
+  currentTrack = { src: src, audio: audio };
+  audio.currentTime = 0;
+  const started = audio.play();
+  if (started && started.catch) {
+    started.catch(function () { blockedTrack = src; });
+  }
+}
+
+function stopLoop() {
+  blockedTrack = null;
+  if (!currentTrack) return;
+  currentTrack.audio.pause();
+  currentTrack.audio.currentTime = 0;
+  currentTrack = null;
+}
+
+/* Called from the keydown handler: if autoplay blocked us, try once more. */
+function retryBlockedTrack() {
+  if (!blockedTrack || !currentTrack || currentTrack.src !== blockedTrack) return;
+  blockedTrack = null;
+  const started = currentTrack.audio.play();
+  if (started && started.catch) started.catch(function () {});
 }
 
 /* --- DOM ------------------------------------------------------------------ */
@@ -32,8 +79,15 @@ const viewportEl = document.getElementById('viewport');
 const stageEl = document.getElementById('stage');
 const fadeEl = document.getElementById('fade');
 const toastEl = document.getElementById('toast');
-const dialogueEl = document.getElementById('dialogue');
-const dialogueTextEl = document.getElementById('dialogue-text');
+const battleEl = document.getElementById('battle');
+const battlePortraitEl = document.getElementById('battle-portrait');
+const battleNameEl = document.getElementById('battle-name');
+const battleHpFillEl = document.getElementById('battle-hp-fill');
+const battleHpNumEl = document.getElementById('battle-hp-num');
+const battleTextEl = document.getElementById('battle-text');
+const battleAskEl = document.getElementById('battle-ask');
+const battleChoicesEl = document.getElementById('battle-choices');
+const battlePromptEl = document.getElementById('battle-prompt');
 const fireworksEl = document.getElementById('fireworks');
 const bannerEl = document.getElementById('banner');
 const bannerTextEl = document.getElementById('banner-text');
@@ -73,7 +127,7 @@ function tileClasses(ch, stage) {
   if (ch === '#') {
     classes.push('wall');
   } else if (ch === 'B') {
-    classes.push('boss');
+    classes.push('boss', BOSSES[stage.boss].id);
     if (state.bossesDefeated[stage.boss]) classes.push('defeated');
   } else if (ch === 'D') {
     classes.push('door', 'door-hub');
@@ -161,6 +215,7 @@ function render(opts) {
   }
 
   playerEl.dataset.facing = state.facing;
+  playerEl.dataset.outfit = state.outfit;
   playerEl.style.transform =
     'translate(' + state.playerTile.x * TILE + 'px, ' + state.playerTile.y * TILE + 'px)';
 
@@ -174,13 +229,7 @@ function render(opts) {
     playerEl.classList.remove('no-tween');
   }
 
-  if (state.dialogueBoss === null) {
-    dialogueEl.hidden = true;
-  } else {
-    const boss = BOSSES[state.dialogueBoss];
-    dialogueTextEl.textContent = boss.name + ' — ' + boss.prompt;
-    dialogueEl.hidden = false;
-  }
+  renderBattle();
 }
 
 /* --- transient message ---------------------------------------------------- */
@@ -205,7 +254,15 @@ function transitionTo(sceneId) {
     /* A stage change always resets position/camera — nothing carries over. */
     state.playerTile = { x: next.spawn.x, y: next.spawn.y };
     state.cameraOffset = { x: 0, y: 0 };
-    state.dialogueBoss = null;
+    state.battle = null;
+
+    /* Walking into a boss room starts the fight music; it loops until that boss
+       is down (finishBattle) or she leaves the room. */
+    if (next.boss !== undefined && !state.bossesDefeated[next.boss]) {
+      playLoop(AUDIO.bossMusic);
+    } else {
+      stopLoop();
+    }
     render({ instant: true });
 
     fadeEl.classList.remove('on');
@@ -213,42 +270,195 @@ function transitionTo(sceneId) {
   }, FADE_MS);
 }
 
-/* --- boss encounter (one template, all three rooms call it with config) ---- */
-function openBossDialogue(bossIndex) {
-  state.dialogueBoss = bossIndex;
-  playSound('dialogue-open');
+/* --- boss fight -----------------------------------------------------------
+   One template, every room uses it — the difference is entirely BOSSES[i] in
+   data.js. She cannot lose: a wrong answer only draws a taunt and the same
+   question stays up, unlimited retries. Each correct answer takes
+   `damagePerAnswer` off the boss, and the last one empties the bar.
+
+   phases:
+     intro     the boss's opening line          -> Enter
+     question  the question + its choices       -> click / 1-4 / arrows+Enter
+     hit       she just lost hp, reacting       -> Enter
+     victory   her closing line + the reward    -> Enter
+   --------------------------------------------------------------------------- */
+function startBattle(bossIndex) {
+  const boss = BOSSES[bossIndex];
+  state.battle = {
+    bossIndex: bossIndex,
+    hp: boss.hp,
+    maxHp: boss.hp,
+    phase: 'intro',
+    questionIndex: 0,
+    hitCount: 0,      // how many times she has been hit — picks the hit line
+    wrongCount: 0,    // total wrong answers — cycles the taunts
+    wrongPicks: [],   // choices already ruled out on the current question
+    selected: 0,      // keyboard cursor within the choices
+    line: boss.intro
+  };
+  playSound('battle-start');
   render();
 }
 
-function resolveBossDialogue(answer) {
-  const bossIndex = state.dialogueBoss;
-  if (bossIndex === null) return;
+function endBattle() {
+  state.battle = null;
+  battleChoicesEl.innerHTML = '';
+  render();
+}
 
-  /* No: close the box, change nothing — she can walk up and try again. */
-  if (answer !== 'yes') {
-    state.dialogueBoss = null;
-    playSound('dialogue-close');
+function currentQuestion(battle) {
+  return BOSSES[battle.bossIndex].questions[battle.questionIndex];
+}
+
+function renderBattle() {
+  const battle = state.battle;
+  if (!battle) {
+    battleEl.hidden = true;
+    return;
+  }
+
+  const boss = BOSSES[battle.bossIndex];
+  const asking = battle.phase === 'question';
+
+  battleEl.hidden = false;
+  battlePortraitEl.className = boss.id;
+  battleNameEl.textContent = boss.subtitle ? boss.name + ' · ' + boss.subtitle : boss.name;
+  battleHpFillEl.style.width = (battle.hp / battle.maxHp * 100) + '%';
+  battleHpFillEl.classList.toggle('empty', battle.hp <= 0);
+  battleHpNumEl.textContent = battle.hp + ' / ' + battle.maxHp + ' HP';
+  battleTextEl.textContent = battle.line;
+
+  battleAskEl.hidden = !asking;
+  battleChoicesEl.hidden = !asking;
+  if (asking) {
+    const question = currentQuestion(battle);
+    battleAskEl.textContent =
+      'Q' + (battle.questionIndex + 1) + '/' + boss.questions.length + '  ' + question.ask;
+    buildChoices(battle, question);
+  }
+
+  battlePromptEl.hidden = asking;
+  if (!asking) {
+    battlePromptEl.textContent =
+      battle.phase === 'victory' ? 'press Enter to take them' : 'press Enter';
+  }
+}
+
+/* Rebuild the buttons only when the question changes; otherwise just restyle
+   them, so a wrong pick does not yank the row out from under the cursor. */
+function buildChoices(battle, question) {
+  const key = battle.bossIndex + ':' + battle.questionIndex;
+  if (battleChoicesEl.dataset.key !== key) {
+    battleChoicesEl.dataset.key = key;
+    battleChoicesEl.innerHTML = '';
+    question.choices.forEach(function (choice, i) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.choice = i;
+      button.innerHTML = '<b>' + (i + 1) + '</b>' + choice;
+      battleChoicesEl.appendChild(button);
+    });
+  }
+  Array.prototype.forEach.call(battleChoicesEl.children, function (button, i) {
+    button.classList.toggle('ruled-out', battle.wrongPicks.indexOf(i) !== -1);
+    button.classList.toggle('selected', battle.selected === i);
+  });
+}
+
+function moveSelection(delta) {
+  const battle = state.battle;
+  if (!battle || battle.phase !== 'question') return;
+  const count = currentQuestion(battle).choices.length;
+  battle.selected = (battle.selected + delta + count) % count;
+  render();
+}
+
+function answerQuestion(choiceIndex) {
+  const battle = state.battle;
+  if (!battle || battle.phase !== 'question') return;
+
+  const boss = BOSSES[battle.bossIndex];
+  const question = currentQuestion(battle);
+  if (choiceIndex < 0 || choiceIndex >= question.choices.length) return;
+  battle.selected = choiceIndex;
+
+  /* Wrong: costs nothing. Rule the choice out and let her pick again. */
+  if (choiceIndex !== question.correct) {
+    if (battle.wrongPicks.indexOf(choiceIndex) === -1) battle.wrongPicks.push(choiceIndex);
+    battle.line = boss.wrongLines[battle.wrongCount % boss.wrongLines.length];
+    battle.wrongCount++;
+    playSound('answer-wrong');
     render();
     return;
   }
 
-  state.bossesDefeated[bossIndex] = true;
-  state.dialogueBoss = null;
-  state.worldVersion++;          // locks/doors need repainting
+  /* Right: she takes a hit and reacts before the next question comes up. */
+  battle.hp = Math.max(0, battle.hp - boss.damagePerAnswer);
+  battle.line = boss.hitLines[Math.min(battle.hitCount, boss.hitLines.length - 1)];
+  battle.hitCount++;
+  battle.phase = 'hit';
+  playSound('boss-hit');
+  render();
+}
+
+/* Enter/Space: the only thing that moves intro, hit and victory along. */
+function advanceBattle() {
+  const battle = state.battle;
+  if (!battle) return;
+  const boss = BOSSES[battle.bossIndex];
+
+  if (battle.phase === 'intro') {
+    battle.phase = 'question';
+    render();
+    return;
+  }
+
+  if (battle.phase === 'hit') {
+    if (battle.hp <= 0) {
+      battle.phase = 'victory';
+      battle.line = boss.victory;
+      playSound('boss-defeated');
+      render();
+      return;
+    }
+    battle.questionIndex++;
+    battle.phase = 'question';
+    battle.wrongPicks = [];
+    battle.selected = 0;
+    render();
+    return;
+  }
+
+  if (battle.phase === 'victory') finishBattle();
+}
+
+function finishBattle() {
+  const battle = state.battle;
+  const boss = BOSSES[battle.bossIndex];
+
+  state.bossesDefeated[boss.index] = true;
+  state.worldVersion++;          // locks/doors and the boss tile need repainting
   state.inputLocked = true;
-  playSound('boss-defeated');
+  stopLoop();                    // the fight music ends with the fight
+
+  /* The reward lands before the transition, so she is already wearing it when
+     the lobby fades back in. */
+  if (boss.reward && boss.reward.outfit) {
+    state.outfit = boss.reward.outfit;
+    playSound('reward');
+  }
+  endBattle();
 
   const finished = allBossesDefeated();
   if (finished) playSound('door-unlock');
-  showToast('Victory!', 1000);
-  render();
+  showToast((boss.reward && boss.reward.toast) || 'Victory!', 1200);
 
   setTimeout(function () {
     state.inputLocked = false;
     /* Beating the last boss reveals the Level 3 exit door, so she stays in the
        room to walk through it. Every other victory sends her back to the Hub. */
     if (!finished) transitionTo('hub');
-  }, 1000);
+  }, 1200);
 }
 
 /* --- movement ------------------------------------------------------------- */
@@ -263,8 +473,8 @@ const heldKeys = [];   // most recently pressed key wins
 let lastStepAt = 0;
 
 function tryStep(dx, dy) {
-  /* Nothing moves during a transition, a victory beat, or an open dialogue. */
-  if (state.inputLocked || state.dialogueBoss !== null) return;
+  /* Nothing moves during a transition, a victory beat, or an open fight. */
+  if (state.inputLocked || state.battle !== null) return;
 
   const stage = stageOf();
 
@@ -287,7 +497,7 @@ function tryStep(dx, dy) {
   if (ch === '#' || ch === 'P') return;   // walls and signposts are solid
 
   if (ch === 'B') {
-    if (!state.bossesDefeated[stage.boss]) openBossDialogue(stage.boss);
+    if (!state.bossesDefeated[stage.boss]) startBattle(stage.boss);
     return; // the boss tile is never walked onto
   }
 
@@ -319,7 +529,7 @@ function tryStep(dx, dy) {
 
 function step(now) {
   requestAnimationFrame(step);
-  if (state.inputLocked || state.dialogueBoss !== null) return;
+  if (state.inputLocked || state.battle !== null) return;
   if (!heldKeys.length) return;
   if (now - lastStepAt < STEP_MS) return;
   const dir = KEYS[heldKeys[heldKeys.length - 1]];
@@ -330,12 +540,22 @@ function step(now) {
 
 /* --- input ---------------------------------------------------------------- */
 document.addEventListener('keydown', function (e) {
+  retryBlockedTrack();   // first keypress is the gesture autoplay was waiting for
   if (replayArmed) { replay(); return; }
 
-  if (state.dialogueBoss !== null) {
-    if (e.key === 'y' || e.key === 'Y' || e.key === 'Enter') resolveBossDialogue('yes');
-    if (e.key === 'n' || e.key === 'N' || e.key === 'Escape') resolveBossDialogue('no');
+  /* In a fight the arrow keys drive the answer cursor, not the player. */
+  if (state.battle !== null) {
     e.preventDefault();
+    /* Ignore OS key-repeat on Enter, or holding it would skip whole lines. */
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (e.repeat) return;
+      if (state.battle.phase === 'question') answerQuestion(state.battle.selected);
+      else advanceBattle();
+      return;
+    }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { moveSelection(1); return; }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { moveSelection(-1); return; }
+    if (e.key >= '1' && e.key <= '9') answerQuestion(Number(e.key) - 1);
     return;
   }
 
@@ -356,9 +576,12 @@ document.addEventListener('keyup', function (e) {
 /* Held keys can get stuck if focus leaves the window mid-step. */
 window.addEventListener('blur', function () { heldKeys.length = 0; });
 
-dialogueEl.addEventListener('click', function (e) {
+battleEl.addEventListener('click', function (e) {
+  if (!state.battle) return;
   const btn = e.target.closest('button[data-choice]');
-  if (btn) resolveBossDialogue(btn.dataset.choice);
+  if (btn) { answerQuestion(Number(btn.dataset.choice)); return; }
+  /* Anywhere else in the panel advances the lines she has to read. */
+  if (state.battle.phase !== 'question') advanceBattle();
 });
 
 /* --- castle: fireworks + banner ------------------------------------------- */
@@ -410,6 +633,7 @@ function replay() {
   bannerEl.hidden = true;
   state.bossesDefeated = [false, false, false];
   state.castleUnlocked = false;
+  state.outfit = 'default';
   state.worldVersion++;
   transitionTo('hub');
 }

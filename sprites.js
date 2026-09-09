@@ -19,7 +19,12 @@ const PALETTE = {
   H: '#3d2a1d',                 // dark brown hair
   h: '#543926',                 // hair highlight / centre part
   N: '#17171c',                 // black tube top
-  P: '#D3D3D3'                  // light grey sweats
+  P: '#D3D3D3',                 // light grey sweats (recoloured per outfit)
+  /* Brandy Boss */
+  Y: '#e6c56f',                 // blonde bob
+  M: '#e3cdb8',                 // mannequin plastic
+  R: '#c95d7e',                 // pursed lip
+  Q: '#FFA3C7'                  // the pink sweats she is guarding
 };
 
 const SPRITES = {
@@ -80,6 +85,26 @@ const SPRITES = {
     '......XXXX......',
     '....KKKKKKKK....',
     '................'
+  ],
+  /* Brandy Boss: a snooty mannequin on a stand — blonde bob, sunglasses pushed
+     up into it, arms folded around the pink sweats she refuses to hand over. */
+  bossMannequin: [
+    '................',
+    '.....YYYYYY.....',
+    '....YYddddYY....',
+    '....YYMMMMYY....',
+    '....YYMEMEYY....',
+    '....YYMMMMYY....',
+    '.....YMRRMY.....',
+    '.....YMMMMY.....',
+    '....YYMMMMYY....',
+    '...XMMWWWWMMX...',
+    '...XMMWWWWMMX...',
+    '....XMQQQQMX....',
+    '....XMQQQQMX....',
+    '.....XMMMMX.....',
+    '......XppX......',
+    '...XAAAAAAAAX...'
   ],
   /* Player, one sprite per facing. Right is the left sprite mirrored in CSS. */
   playerDown: [
@@ -188,7 +213,11 @@ function makeGroundTexture() {
 /* Awning colour per destination: Level 1, Level 2, Level 3. */
 const STORE_COLORS = ['#6bbf7a', '#5a9fd4', '#c77fb5'];
 
-/* Expose every sprite to CSS as a custom property: --sprite-sign0, etc. */
+/* Which sprites get re-rasterized once per outfit. */
+const PLAYER_SPRITES = ['playerDown', 'playerUp', 'playerSide'];
+
+/* Expose every sprite to CSS as a custom property: --sprite-playerDown, and
+   --sprite-playerDown--pinkSweats for the outfit variants. */
 function installSprites() {
   const root = document.documentElement.style;
   for (const name in SPRITES) {
@@ -197,5 +226,13 @@ function installSprites() {
   STORE_COLORS.forEach(function (color, i) {
     root.setProperty('--sprite-store' + (i + 1), rasterize(SPRITES.store, { A: color }));
   });
+  /* One extra rasterization per player sprite per outfit — CSS then just picks
+     the right variable off #player[data-outfit]. */
+  for (const outfit in OUTFITS) {
+    const palette = OUTFITS[outfit].palette;
+    PLAYER_SPRITES.forEach(function (name) {
+      root.setProperty('--sprite-' + name + '--' + outfit, rasterize(SPRITES[name], palette));
+    });
+  }
   root.setProperty('--ground-texture', makeGroundTexture());
 }

@@ -121,12 +121,106 @@ const CASTLE_MAP = [
   '###############'
 ];
 
-/* Boss config — one entry per level, kept as data so Phase 2 is a content
-   change rather than a rebuild. `index` lines up with state.bossesDefeated. */
+/* ---------------------------------------------------------------------------
+   Outfits. `palette` overrides sprite-palette characters on every player
+   sprite, so adding an outfit is one entry here and nothing else. 'P' is the
+   sweats. state.outfit names the one she is wearing right now.
+   --------------------------------------------------------------------------- */
+const OUTFITS = {
+  default:    { label: 'Grey sweats', palette: null },
+  pinkSweats: { label: 'Pink sweats', palette: { P: '#FFA3C7' } }
+};
+
+/* ---------------------------------------------------------------------------
+   Boss config — one entry per level. `index` lines up with state.bossesDefeated.
+
+   A fight runs: intro line -> one question at a time -> victory line.
+   Every correct answer knocks `damagePerAnswer` off the boss. Wrong answers
+   cost nothing — the player cannot die and retries are unlimited — so
+   hp / damagePerAnswer must equal questions.length.
+
+   Each question is:
+     ask      the question text
+     choices  the buttons, in the order they appear on screen
+     correct  index into `choices` of the right one (0 = first button)
+
+   The WRONG choices below are placeholders. Swap the strings for whatever you
+   want; only keep `correct` pointing at the right one.
+   --------------------------------------------------------------------------- */
 const BOSSES = [
-  { index: 0, id: 'boss-1', name: 'Boss 1 (placeholder)', prompt: 'Do you want to continue?' },
-  { index: 1, id: 'boss-2', name: 'Boss 2 (placeholder)', prompt: 'Do you want to continue?' },
-  { index: 2, id: 'boss-3', name: 'Boss 3 (placeholder)', prompt: 'Do you want to continue?' }
+  {
+    index: 0,
+    id: 'boss-1',
+    name: 'Brandy Boss',
+    subtitle: 'Brandy Melville',
+    hp: 75,
+    damagePerAnswer: 25,
+    intro: "These are the last pink sweats in the store. I'll give them to you if you can answer these three math questions.",
+    victory: 'You were a formidable. Here are these pink sweats.',
+    /* Handed over the moment she goes down, so the player is wearing these when
+       she lands back in the lobby on her way to Level 2. */
+    reward: { outfit: 'pinkSweats', toast: 'Got the pink sweats!' },
+    /* Said each time she loses hp. Used in order, then held on the last one. */
+    hitLines: [
+      '...Fine. That one was easy.',
+      "Lucky guess. Don't get comfortable.",
+      'Hmph.'
+    ],
+    /* Said on a wrong answer. Nothing else happens — try again. */
+    wrongLines: [
+      'Ugh. Not even close, sweetie.',
+      'Do you even shop here? Try again.',
+      "That's a no from me. Again.",
+      "I'll wait. I have all day."
+    ],
+    questions: [
+      { ask: '2 + 2 = ?',   choices: ['6', '4', '22', '2'],        correct: 1 },  /* -> 4 */
+      { ask: '5 x 7 = ?',   choices: ['30', '12', '35', '57'],     correct: 2 },  /* -> 35 */
+      { ask: '13 x 12 = ?', choices: ['144', '156', '169', 'IDK'], correct: 1 }   /* -> 156 */
+    ]
+  },
+  {
+    index: 1,
+    id: 'boss-2',
+    name: 'Boss 2 (placeholder)',
+    subtitle: 'Level 2',
+    hp: 75,
+    damagePerAnswer: 25,
+    intro: 'Placeholder intro line for the second boss.',
+    victory: 'Placeholder victory line for the second boss.',
+    reward: null,
+    hitLines: ['Placeholder hit line.'],
+    wrongLines: ['Placeholder wrong-answer line.'],
+    questions: [
+      { ask: 'Placeholder question 1',
+        choices: ['Right answer', 'Placeholder', 'Placeholder', 'Placeholder'], correct: 0 },
+      { ask: 'Placeholder question 2',
+        choices: ['Placeholder', 'Right answer', 'Placeholder', 'Placeholder'], correct: 1 },
+      { ask: 'Placeholder question 3',
+        choices: ['Placeholder', 'Placeholder', 'Right answer', 'Placeholder'], correct: 2 }
+    ]
+  },
+  {
+    index: 2,
+    id: 'boss-3',
+    name: 'Boss 3 (placeholder)',
+    subtitle: 'Level 3',
+    hp: 75,
+    damagePerAnswer: 25,
+    intro: 'Placeholder intro line for the third boss.',
+    victory: 'Placeholder victory line for the third boss.',
+    reward: null,
+    hitLines: ['Placeholder hit line.'],
+    wrongLines: ['Placeholder wrong-answer line.'],
+    questions: [
+      { ask: 'Placeholder question 1',
+        choices: ['Right answer', 'Placeholder', 'Placeholder', 'Placeholder'], correct: 0 },
+      { ask: 'Placeholder question 2',
+        choices: ['Placeholder', 'Right answer', 'Placeholder', 'Placeholder'], correct: 1 },
+      { ask: 'Placeholder question 3',
+        choices: ['Placeholder', 'Placeholder', 'Right answer', 'Placeholder'], correct: 2 }
+    ]
+  }
 ];
 
 /* Stages. `spawn` is where the player lands when the stage is entered — a
@@ -187,6 +281,12 @@ const HUB_PATHS = {
   '1': { target: 'level1', requiresBoss: null },
   '2': { target: 'level2', requiresBoss: 0 },
   '3': { target: 'level3', requiresBoss: 1 }
+};
+
+/* Audio. Relative paths, so it works locally and once deployed. The boss track
+   loops from the moment she walks into a boss room until that boss is down. */
+const AUDIO = {
+  bossMusic: './audio/FightingBossMusic.mp3'
 };
 
 const BANNER_TEXT = "You've won 2 tickets to Disneyland!";

@@ -141,14 +141,26 @@ body {
   box-shadow: inset 0 0 0 4px #e8d8a0;
 }
 
-/* Placeholder boss marker — Phase 2 swaps in a real sprite. */
-.boss {
+/* Boss markers. Each boss carries its own id as a class, so giving one real
+   art is a single rule here — boss-2 and boss-3 keep the placeholder blob. */
+.boss { background-size: 48px 48px; }
+.boss-1 { background-image: var(--sprite-bossMannequin); }
+.boss-2,
+.boss-3 {
   background-image:
     radial-gradient(circle at 38% 32%, #ff9a8a 0 12%, rgba(255, 154, 138, 0) 45%),
     radial-gradient(circle at 50% 55%, #d64b4b 0 40%, #7a1e1e 41% 62%, rgba(0, 0, 0, 0) 64%);
-  background-size: 48px 48px;
 }
 .boss.defeated { filter: grayscale(1) brightness(.65) opacity(.65); }
+
+/* The same art, larger, for the portrait in the fight panel. */
+#battle-portrait.boss-1 { background-image: var(--sprite-bossMannequin); }
+#battle-portrait.boss-2,
+#battle-portrait.boss-3 {
+  background-image:
+    radial-gradient(circle at 38% 32%, #ff9a8a 0 12%, rgba(255, 154, 138, 0) 45%),
+    radial-gradient(circle at 50% 55%, #d64b4b 0 40%, #7a1e1e 41% 62%, rgba(0, 0, 0, 0) 64%);
+}
 
 #player {
   position: absolute;
@@ -172,6 +184,13 @@ body {
 #player[data-facing="up"]::after    { background-image: var(--sprite-playerUp); }
 #player[data-facing="left"]::after  { background-image: var(--sprite-playerSide); }
 #player[data-facing="right"]::after { background-image: var(--sprite-playerSide); transform: scaleX(-1); }
+
+/* Outfits — set by boss rewards, one variable swap per facing. Add an outfit to
+   OUTFITS in data.js and add its three rules here. */
+#player[data-outfit="pinkSweats"]::after                      { background-image: var(--sprite-playerDown--pinkSweats); }
+#player[data-outfit="pinkSweats"][data-facing="up"]::after    { background-image: var(--sprite-playerUp--pinkSweats); }
+#player[data-outfit="pinkSweats"][data-facing="left"]::after  { background-image: var(--sprite-playerSide--pinkSweats); }
+#player[data-outfit="pinkSweats"][data-facing="right"]::after { background-image: var(--sprite-playerSide--pinkSweats); }
 
 /* --- overlays ------------------------------------------------------------- */
 #fade {
@@ -200,7 +219,7 @@ body {
   white-space: nowrap;
 }
 
-#dialogue {
+#battle {
   position: absolute;
   z-index: 30;
   left: 12px;
@@ -213,21 +232,99 @@ body {
   border: 4px solid var(--frame);
   border-radius: 4px;
 }
-#dialogue p { margin: 0 0 10px; font-size: 13px; }
 
-#dialogue-choices { display: flex; gap: 10px; }
-#dialogue-choices button {
+/* Boss portrait + name + hp bar, across the top of the panel. */
+#battle-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+
+#battle-portrait {
   flex: 0 0 auto;
-  padding: 6px 18px;
+  width: 56px;
+  height: 56px;
+  background: no-repeat center / contain;
+  image-rendering: pixelated;
+}
+
+#battle-meta { flex: 1 1 auto; min-width: 0; }
+#battle-name { margin: 0 0 5px; font-size: 12px; letter-spacing: .04em; }
+
+#battle-hp {
+  height: 12px;
+  background: #cbd6b4;
+  border: 2px solid var(--frame);
+  border-radius: 2px;
+  overflow: hidden;
+}
+#battle-hp-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(#ff7fa8, #d63f6e);
+  transition: width 320ms ease-out;   /* the bar drains, it does not jump */
+}
+#battle-hp-fill.empty { background: #8a8f80; }
+
+#battle-hp-num { margin: 4px 0 0; font-size: 10px; color: #5c6b52; }
+
+/* What she is saying right now. Fixed height so the panel never jumps as the
+   lines change length. */
+#battle-text {
+  margin: 0 0 8px;
+  min-height: 34px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+#battle-ask {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 8px;
+  background: #fff;
+  border: 2px solid var(--frame);
+  border-radius: 3px;
+}
+
+/* Four answers in a 2x2 grid — reads as a menu, fits without scrolling. */
+#battle-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#battle-choices button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
   font: inherit;
   font-size: 13px;
+  text-align: left;
   color: var(--ink);
   background: #fff;
   border: 3px solid var(--frame);
   border-radius: 3px;
   cursor: pointer;
 }
-#dialogue-choices button:hover { background: #cfe0b0; }
+#battle-choices button b {
+  flex: 0 0 auto;
+  width: 16px;
+  font-size: 10px;
+  color: #6f7d63;
+}
+#battle-choices button:hover { background: #cfe0b0; }
+/* Keyboard cursor. */
+#battle-choices button.selected {
+  background: #cfe0b0;
+  box-shadow: inset 0 0 0 2px var(--frame);
+}
+/* Already tried and wrong — still clickable, just visibly spent. */
+#battle-choices button.ruled-out {
+  color: #96a08c;
+  background: #e0e4d6;
+  text-decoration: line-through;
+}
+
+#battle-prompt {
+  margin: 2px 0 0;
+  font-size: 10px;
+  color: #6f7d63;
+  animation: blink 1.1s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: .25; } }
 
 /* --- castle: fireworks + banner ------------------------------------------- */
 #fireworks {
