@@ -28,6 +28,7 @@ const CORRIDOR_DIR = { x: 0, y: 1 };
      E  Level 3 secret exit (hidden until all 3 bosses are down)
      C  corridor end -> Castle
      K  castle wall (solid)       G  castle gate — walk in to unlock the ending
+     x  shop fitting (solid; the art over it comes from the stage's prop list)
    --------------------------------------------------------------------------- */
 
 /* Hub: paths arranged in a triangle — Level 1 lower-left, Level 2 lower-right,
@@ -61,18 +62,70 @@ const HUB_MAP = [
 
 /* Level rooms are all the same shape: boss at the top, door back to the Hub at
    the bottom. `withExit` adds the Level 3-only second door on the right wall.
-   11x9 tiles — smaller than the viewport, so the camera stays put here. */
-function makeRoomMap(withExit) {
+   11x9 tiles — smaller than the viewport, so the camera stays put here.
+
+   `shopFittings` fills the two clothing shops out: rails down both side walls
+   and folded stacks below them. They are solid, and the column she walks up to
+   reach the boss stays clear. The art sits in the stage's `props`. */
+function makeRoomMap(opts) {
+  const o = opts || {};
+  const racks  = o.fittings ? '#xxx...xxx#' : '#.........#';
+  const stacks = o.fittings ? '#xx.....xx#' : '#.........#';
+  /* June is two tiles wide, so the tiles his art overhangs are solid too —
+     otherwise she could stand inside him. */
+  const bossRow = o.wideBoss ? '#...xBx...#' : '#....B....#';
   return [
     '###########',
     '#.........#',
-    '#....B....#',
+    bossRow,
+    racks,
+    o.exit ? '#.........E' : '#.........#',
     '#.........#',
-    withExit ? '#.........E' : '#.........#',
-    '#.........#',
-    '#.........#',
+    stacks,
     '#.........#',
     '#####D#####'
+  ];
+}
+
+/* The state June leaves his shop in. Decals are decoration only — they are not
+   in the map, so she walks straight over them — and the positions are in tiles,
+   fractional on purpose so the litter does not sit on a grid. It is banked up
+   around him and thins out towards the door. */
+const JUNE_TRASH = [
+  /* Banked up against him first — above, either side, and underfoot. */
+  { sprite: 'trashCan',   x: 5.5, y: 1.1 },
+  { sprite: 'trashPaper', x: 4.3, y: 1.1 },
+  { sprite: 'trashCan',   x: 3.1, y: 1.2 },
+  { sprite: 'trashPaper', x: 6.6, y: 1.1 },
+  { sprite: 'trashSock',  x: 2.9, y: 2.6 },
+  { sprite: 'trashShoe',  x: 6.9, y: 2.6 },
+  { sprite: 'trashSpill', x: 4.4, y: 2.9 },
+  { sprite: 'trashBag',   x: 5.1, y: 3.1 },
+  { sprite: 'trashShirt', x: 3.4, y: 3.2 },
+  { sprite: 'trashPizza', x: 6.3, y: 3.3 },
+  { sprite: 'trashBox',   x: 1.6, y: 1.5 },
+  { sprite: 'trashSock',  x: 8.0, y: 1.4 },
+  { sprite: 'trashBag',   x: 2.2, y: 2.4 },
+  { sprite: 'trashSpill', x: 7.3, y: 2.2 },
+  /* Then thinning out towards the door she comes in by. */
+  { sprite: 'trashCan',   x: 4.5, y: 4.0 },
+  { sprite: 'trashShoe',  x: 2.6, y: 4.1 },
+  { sprite: 'trashPaper', x: 7.5, y: 3.9 },
+  { sprite: 'trashSpill', x: 4.0, y: 4.7 },
+  { sprite: 'trashCan',   x: 2.2, y: 5.4 },
+  { sprite: 'trashShirt', x: 7.0, y: 5.2 },
+  { sprite: 'trashPaper', x: 4.3, y: 5.9 },
+  { sprite: 'trashPizza', x: 6.6, y: 6.1 }
+];
+
+/* The fittings for one shop, in the layout makeRoomMap marks solid above.
+   `shop` picks the colourway the racks are rasterized in. */
+function shopProps(shop) {
+  return [
+    { sprite: 'clothingRack', shop: shop, x: 1, y: 3, w: 3, h: 1 },
+    { sprite: 'clothingRack', shop: shop, x: 7, y: 3, w: 3, h: 1 },
+    { sprite: 'clothesStack', shop: shop, x: 1, y: 6, w: 2, h: 1 },
+    { sprite: 'clothesStack', shop: shop, x: 8, y: 6, w: 2, h: 1 }
   ];
 }
 
@@ -102,10 +155,11 @@ const CORRIDOR_MAP = [
   '###C###'
 ];
 
-/* Castle grounds. She arrives at the bottom and walks up to the gate. */
+/* Castle grounds. She arrives at the bottom and walks up to the gate. This map
+   is exactly one viewport (15x11), so the camera never scrolls here and the
+   whole castle — spire included — is always in frame. */
 const CASTLE_MAP = [
   '###############',
-  '#..KKKKKKKKK..#',
   '#..KKKKKKKKK..#',
   '#..KKKKKKKKK..#',
   '#..KKKKKKKKK..#',
@@ -115,11 +169,30 @@ const CASTLE_MAP = [
   '#..KKKKGKKKK..#',
   '#.............#',
   '#.............#',
-  '#.............#',
-  '#.............#',
-  '#.............#',
   '###############'
 ];
+
+/* Audio. Relative paths, so it works locally and once deployed. The boss track
+   loops from the moment she walks into a boss room until that boss is down.
+   Spaces are percent-encoded so the URL needs no quoting anywhere. */
+const AUDIO = {
+  bossMusic: './audio/FightingBossMusic.mp3',
+  finaleMusic: './audio/Walt%20Disney%20Theme%20Song.mp3'
+};
+
+/* The finale track does not simply loop: it plays once end to end, and then
+   repeats one section of itself `times` more times before going quiet.
+   start/end are seconds into the file. */
+const FINALE_LOOP = { start: 7, end: 21, times: 10 };
+
+/* Sound effects. Anything playSound() is called with that is NOT listed here
+   is still just a console line, so adding a sound is one entry.
+
+   The fireworks are deliberately not one of them: the finale track is playing
+   over that whole scene, and the two together were a mess. */
+const SFX = {
+  punch: './audio/punch.mp3'
+};
 
 /* ---------------------------------------------------------------------------
    Outfits. `palette` overrides sprite-palette characters on every player
@@ -134,10 +207,15 @@ const OUTFITS = {
 /* ---------------------------------------------------------------------------
    Boss config — one entry per level. `index` lines up with state.bossesDefeated.
 
-   A fight runs: intro line -> one question at a time -> victory line.
+   A quiz fight runs: intro line -> one question at a time -> victory line.
    Every correct answer knocks `damagePerAnswer` off the boss. Wrong answers
    cost nothing — the player cannot die and retries are unlimited — so
    hp / damagePerAnswer must equal questions.length.
+
+   A `mode: 'punch'` fight runs: intro line -> Enter throws a punch, over and
+   over, each one worth `damagePerAnswer` -> at 0 hp he asks his one question
+   (`beaten` is the line he asks it with) -> victory line. So there
+   hp / damagePerAnswer is the number of punches, and questions.length is 1.
 
    Each question is:
      ask      the question text
@@ -151,7 +229,7 @@ const BOSSES = [
   {
     index: 0,
     id: 'boss-1',
-    name: 'Brandy Boss',
+    name: 'Alex Earle',
     subtitle: 'Brandy Melville',
     hp: 75,
     damagePerAnswer: 25,
@@ -159,7 +237,11 @@ const BOSSES = [
     victory: 'You were a formidable. Here are these pink sweats.',
     /* Handed over the moment she goes down, so the player is wearing these when
        she lands back in the lobby on her way to Level 2. */
-    reward: { outfit: 'pinkSweats', toast: 'Got the pink sweats!' },
+    reward: {
+      outfit: 'pinkSweats',
+      toast: 'Got the pink sweats!',
+      prompt: 'press Enter to take them'
+    },
     /* Said each time she loses hp. Used in order, then held on the last one. */
     hitLines: [
       '...Fine. That one was easy.',
@@ -182,43 +264,67 @@ const BOSSES = [
   {
     index: 1,
     id: 'boss-2',
-    name: 'Boss 2 (placeholder)',
-    subtitle: 'Level 2',
-    hp: 75,
+    name: 'Kim Kardashian',
+    subtitle: 'Skims',
+    /* Two riddles, so hp is 50 here — hp / damagePerAnswer must equal
+       questions.length. */
+    hp: 50,
     damagePerAnswer: 25,
-    intro: 'Placeholder intro line for the second boss.',
-    victory: 'Placeholder victory line for the second boss.',
+    intro: "Nobody gets past the fitting room without solving my riddles. Two of them. Take your time.",
+    victory: "Riddled out, fair and square. The way through is yours.",
     reward: null,
-    hitLines: ['Placeholder hit line.'],
-    wrongLines: ['Placeholder wrong-answer line.'],
+    hitLines: [
+      'Hm. You have been paying attention.',
+      'Fine. That was the last one.'
+    ],
+    wrongLines: [
+      'Not it. Think again.',
+      'Cute answer. Wrong answer.',
+      "That's not the one. Once more."
+    ],
     questions: [
-      { ask: 'Placeholder question 1',
-        choices: ['Right answer', 'Placeholder', 'Placeholder', 'Placeholder'], correct: 0 },
-      { ask: 'Placeholder question 2',
-        choices: ['Placeholder', 'Right answer', 'Placeholder', 'Placeholder'], correct: 1 },
-      { ask: 'Placeholder question 3',
-        choices: ['Placeholder', 'Placeholder', 'Right answer', 'Placeholder'], correct: 2 }
+      { ask: 'What has to be broken before you can use it?',
+        choices: ['A promise', 'An egg', 'A record', 'A rule'], correct: 1 },
+      { ask: "I'm tall when I'm young, and I'm short when I'm old. What am I?",
+        choices: ['A candle', 'A tree', 'A shadow', 'A mountain'], correct: 0 }
     ]
   },
   {
     index: 2,
     id: 'boss-3',
-    name: 'Boss 3 (placeholder)',
-    subtitle: 'Level 3',
+    name: 'June',
+    subtitle: 'Final Boss',
+    /* Not a quiz: Enter throws a punch. 75 / 15 = five punches to put him
+       down, and only then does he ask his question. */
+    mode: 'punch',
     hp: 75,
-    damagePerAnswer: 25,
-    intro: 'Placeholder intro line for the third boss.',
-    victory: 'Placeholder victory line for the third boss.',
-    reward: null,
-    hitLines: ['Placeholder hit line.'],
-    wrongLines: ['Placeholder wrong-answer line.'],
+    damagePerAnswer: 15,
+    intro: "So you want the key to the castle. It's right here in my pocket. Come and take it.",
+    /* Said the moment the last punch lands — the line he asks his question with. */
+    beaten: "Okay! Okay. You win. One question and the key is yours.",
+    victory: "...Yeah. Yeah, he is. Here — take the key. Go get your girl her castle.",
+    reward: {
+      key: true,
+      toast: 'Got the castle key!',
+      prompt: 'press Enter to take the key'
+    },
+    /* One per punch, in order — the fifth punch drops him, so `beaten` covers
+       that one and this list only needs the four before it. */
+    hitLines: [
+      'Ow. Okay, that one was free.',
+      "That all you've got?",
+      "...Okay, that one actually hurt.",
+      'Hold on — hold on —'
+    ],
+    wrongLines: [
+      'Absolutely not. Try again.',
+      "Wrong, and you know it's wrong.",
+      'Nope. Think about it.'
+    ],
     questions: [
-      { ask: 'Placeholder question 1',
-        choices: ['Right answer', 'Placeholder', 'Placeholder', 'Placeholder'], correct: 0 },
-      { ask: 'Placeholder question 2',
-        choices: ['Placeholder', 'Right answer', 'Placeholder', 'Placeholder'], correct: 1 },
-      { ask: 'Placeholder question 3',
-        choices: ['Placeholder', 'Placeholder', 'Right answer', 'Placeholder'], correct: 2 }
+      { ask: "Who's the best BF in the world?",
+        choices: ['June', 'Andrew Pham', 'Ryan Gosling', "It's a trick question"],
+        correct: 1 }
     ]
   }
 ];
@@ -230,28 +336,39 @@ const STAGES = {
     id: 'hub',
     name: 'Hub',
     map: HUB_MAP,
-    spawn: { x: 11, y: 21 }
+    spawn: { x: 11, y: 21 },
+    /* The board naming each shop, on the floor tile she walks up to it from —
+       above the two lower doors, below the one at the apex. A sign greys out
+       with its shop while that shop is still shuttered. */
+    signs: [
+      { path: '1', label: 'Brandy Melville', x: 1,  y: 16 },
+      { path: '2', label: 'Skims',           x: 21, y: 16 },
+      { path: '3', label: "June's Store",    x: 11, y: 2  }
+    ]
   },
   level1: {
     id: 'level1',
     name: 'Level 1',
-    map: makeRoomMap(false),
+    map: makeRoomMap({ fittings: true }),
     spawn: { x: 5, y: 7 },
-    boss: 0
+    boss: 0,
+    props: shopProps('brandy')
   },
   level2: {
     id: 'level2',
     name: 'Level 2',
-    map: makeRoomMap(false),
+    map: makeRoomMap({ fittings: true }),
     spawn: { x: 5, y: 7 },
-    boss: 1
+    boss: 1,
+    props: shopProps('skims')
   },
   level3: {
     id: 'level3',
     name: 'Level 3',
-    map: makeRoomMap(true),
+    map: makeRoomMap({ exit: true, wideBoss: true }),
     spawn: { x: 5, y: 7 },
-    boss: 2
+    boss: 2,
+    decals: JUNE_TRASH
   },
   corridor: {
     id: 'corridor',
@@ -259,16 +376,23 @@ const STAGES = {
     map: CORRIDOR_MAP,
     spawn: { x: 3, y: 0 },
     /* Movement in this stage is restricted to one axis+direction. */
-    lockedDirection: CORRIDOR_DIR
+    lockedDirection: CORRIDOR_DIR,
+    /* Halfway down the descent the Disney theme starts. It is deliberately not
+       tied to the stage change: it carries on through the castle and the
+       fireworks without ever restarting. */
+    musicCue: { y: 10, src: AUDIO.finaleMusic }
   },
   castle: {
     id: 'castle',
     name: 'Castle',
     map: CASTLE_MAP,
-    spawn: { x: 7, y: 13 },
+    spawn: { x: 7, y: 9 },
     /* Artwork drawn across a block of tiles; the tiles themselves are solid in
-       the map above. Relative path, so it works locally and once deployed. */
-    structure: { src: './pinkCastle.png', x: 3, y: 1, w: 9, h: 8 }
+       the map above. Relative path, so it works locally and once deployed.
+       8 x 7 tiles keeps the source image's proportions (584x525); it is half a
+       tile narrower than the 9-wide wall block, which is invisible because
+       those tiles are never painted. */
+    structure: { src: './pinkCastle.png', x: 3.5, y: 1, w: 8, h: 7 }
   }
 };
 
@@ -281,12 +405,6 @@ const HUB_PATHS = {
   '1': { target: 'level1', requiresBoss: null },
   '2': { target: 'level2', requiresBoss: 0 },
   '3': { target: 'level3', requiresBoss: 1 }
-};
-
-/* Audio. Relative paths, so it works locally and once deployed. The boss track
-   loops from the moment she walks into a boss room until that boss is down. */
-const AUDIO = {
-  bossMusic: './audio/FightingBossMusic.mp3'
 };
 
 const BANNER_TEXT = "You've won 2 tickets to Disneyland!";

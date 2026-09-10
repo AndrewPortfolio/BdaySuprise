@@ -24,7 +24,31 @@ const PALETTE = {
   Y: '#e6c56f',                 // blonde bob
   M: '#e3cdb8',                 // mannequin plastic
   R: '#c95d7e',                 // pursed lip
-  Q: '#FFA3C7'                  // the pink sweats she is guarding
+  Q: '#FFA3C7',                 // the pink sweats she is guarding
+  /* Skims Boss — same mannequin, dark on dark */
+  B: '#241d2b',                 // black hair
+  b: '#4a3f56',                 // hair sheen / centre part
+  D: '#4f4956',                 // dark Skims dress — kept off the outline colour
+                                //   so the silhouette does not go to one blob
+  /* Shop fittings. The five garment colours are the shop's own — they are
+     what SHOP_PALETTES swaps to give each store its colourway. */
+  /* June */
+  T: '#D2B48C',                 // his skin
+  v: '#4a5f7a',                 // his shirt
+  /* The mess around him */
+  c: '#c0392b',                 // soda red / pepperoni / a dumped tee
+  g: '#c9ced6',                 // aluminium, plastic, a grey sock
+  j: '#b98a53',                 // cardboard, pizza crust
+  k: '#8a6237',                 // cardboard in shadow
+  z: '#f2c14e',                 // cheese
+  q: 'rgba(74, 58, 84, .5)',    // something spilled and left
+  m: '#a8b0bd',                 // chrome rail / shelf board
+  n: '#6a7280',                 // chrome in shadow — posts, feet, frame
+  '1': '#f4a6c0',
+  '2': '#f6d9a0',
+  '3': '#bcd9f0',
+  '4': '#d9c2ee',
+  '5': '#f6f2ea'
 };
 
 const SPRITES = {
@@ -105,6 +129,253 @@ const SPRITES = {
     '.....XMMMMX.....',
     '......XppX......',
     '...XAAAAAAAAX...'
+  ],
+  /* Skims Boss: the same mannequin on the same stand, so the two read as one
+     shop chain — black hair worn long past the shoulders instead of the blonde
+     bob, and a dark dress where the Brandy one holds the pink sweats. */
+  bossKim: [
+    '................',
+    '.....BBBBBB.....',
+    '....BBbbbbBB....',
+    '....BBMMMMBB....',
+    '....BBMEMEBB....',
+    '....BBMMMMBB....',
+    '....BBMRRMBB....',
+    '....BbMMMMbB....',
+    '...BBbMMMMbBB...',
+    '...XBDDMMDDBX...',
+    '...XBDDDDDDBX...',
+    '....XDDDDDDX....',
+    '....XDDDDDDX....',
+    '.....XMMMMX.....',
+    '......XppX......',
+    '...XAAAAAAAAX...'
+  ],
+  /* June: twice the width of every other model — the sprite is 32 wide where
+     the rest are 16, so he is drawn across two tiles. Dark hair with the braid
+     pulled forward over one shoulder, where it reads at this size; behind him
+     it would just be head-shaped. */
+  bossJune: [
+    '...........BBBBBBBBBB...........',
+    '..........BBbbbbbbbbBB..........',
+    '..........BBTTTTTTTTBB..........',
+    '..........BBTEETTEETBB..........',
+    '..........BBTTTTTTTTBB..........',
+    '..........BBTTTXXTTTBB..........',
+    '..........BBBTTTTTTTBB..........',
+    '.....XvvvvvbbbTTTTvvvvvvvvX.....',
+    '.....XvvvvBBBvvvvvvvvvvvvvX.....',
+    '.....XTTTvvbbbvvvvvvvvvTTTX.....',
+    '.....XTTTvBBBvvvvvvvvvvTTTX.....',
+    '.........NNXXNNNNNNNNNN.........',
+    '.........NNNNNNNNNNNNNN.........',
+    '..........TTTTT..TTTTT..........',
+    '..........TTTTT..TTTTT..........',
+    '....KKKKKKKKKKKKKKKKKKKKKKKK....',
+  ],
+  /* Litter. One tile each, and every one of them is decoration only — they are
+     drawn from a stage's decal list, never from the map, so she walks over them. */
+  trashCan: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '......XXXX......',
+    '.....XggggX.....',
+    '.....XcccgX.....',
+    '.....XcccgX.....',
+    '.....XcgccX.....',
+    '.....XcccgX.....',
+    '.....XggggX.....',
+    '......XXXX......',
+    '......KKKK......',
+    '................',
+    '................',
+    '................'
+  ],
+  trashPaper: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '.....XXXX.......',
+    '....XWWWWX......',
+    '...XWWgWWWX.....',
+    '...XWWWgWWX.....',
+    '....XWWgWX......',
+    '.....XXXX.......',
+    '.....KKKK.......',
+    '................',
+    '................',
+    '................',
+    '................'
+  ],
+  trashShirt: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '..XXX.XXXX.XXX..',
+    '.XcccXccccXcccX.',
+    '.XccccccccccccX.',
+    '.XccccccccccccX.',
+    '..XXccccccccXX..',
+    '...XccccccccX...',
+    '...XccccccccX...',
+    '...XXXXXXXXXX...',
+    '....KKKKKKKK....',
+    '................',
+    '................',
+    '................'
+  ],
+  trashSock: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '.....XXX........',
+    '.....XggX.......',
+    '.....XggX.......',
+    '.....XggX.......',
+    '....XggggXX.....',
+    '....XggggggX....',
+    '.....XXXXXX.....',
+    '.....KKKKKK.....',
+    '................',
+    '................',
+    '................'
+  ],
+  trashBox: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '...XX......XX...',
+    '...XjXXXXXXjX...',
+    '...XjjjjjjjjX...',
+    '...XjjjjjjjjX...',
+    '...XkkkkkkkkX...',
+    '...XkkkkkkkkX...',
+    '...XXXXXXXXXX...',
+    '....KKKKKKKK....',
+    '................',
+    '................',
+    '................',
+    '................'
+  ],
+  trashPizza: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '.......XX.......',
+    '......XzzX......',
+    '.....XzczzX.....',
+    '....XzzzzczX....',
+    '...XjjjjjjjjX...',
+    '...XXXXXXXXXX...',
+    '....KKKKKKKK....',
+    '................',
+    '................',
+    '................',
+    '................'
+  ],
+  trashBag: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '....X..XX..X....',
+    '....XggggggX....',
+    '...XggWgggggX...',
+    '...XgggggWggX...',
+    '...XgggggggggX..',
+    '....XgggggggX...',
+    '.....XXXXXX.....',
+    '.....KKKKKK.....',
+    '................',
+    '................',
+    '................',
+    '................'
+  ],
+  trashSpill: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '.....qqqqq......',
+    '...qqqqqqqqq....',
+    '..qqqqqqqqqqqq..',
+    '..qqqqqqqqqqq...',
+    '...qqqqqqqq.....',
+    '.....qqqq.......',
+    '................',
+    '................',
+    '................'
+  ],
+  trashShoe: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '.....XXXX.......',
+    '....XWWWcX......',
+    '...XWWWccXX.....',
+    '...XWWWWWWWX....',
+    '...XXXXXXXXX....',
+    '....KKKKKKK.....',
+    '................',
+    '................',
+    '................',
+    '................'
+  ],
+  /* Shop fittings. Both are wider than one tile — a rail of clothes reads as a
+     rail only when it actually runs the length of a wall — so they are drawn
+     from the stage's prop list over tiles the map marks solid, the same way
+     the castle artwork is. */
+  clothingRack: [
+    '................................................',
+    '....nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn....',
+    '....mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm....',
+    '....n..mm...mm...mm...mm...mm...mm...mm....n....',
+    '....n..11...22...33...44...55...11...33....n....',
+    '....n.1111.2222.3333.4444.5555.1111.3333...n....',
+    '....n.1111.2222.3333.4444.5555.1111.3333...n....',
+    '....n.1111.2222.3333.4444.5555.1111.3333...n....',
+    '....n.1111.2222.3333.4444.5555.1111.3333...n....',
+    '....n.1111.2222.3333.4444.5555.1111.3333...n....',
+    '....n.1111.2222.3333.4444.5555.1111.3333...n....',
+    '....n.1111.2222......4444.5555.1111........n....',
+    '....n......2222......4444......1111........n....',
+    '....n................4444..................n....',
+    '..nnnnn..................................nnnnn..',
+    '..KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK..',
+  ],
+  clothesStack: [
+    '................................',
+    '.n.33333333.11111111.44444444.n.',
+    '.n.n333333n.n111111n.n444444n.n.',
+    '.n..222222...555555...333333..n.',
+    '.n..n2222n...n5555n...n3333n..n.',
+    '.n.11111111.44444444.22222222.n.',
+    '.n.n111111n.n444444n.n222222n.n.',
+    '.mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm.',
+    '.n............................n.',
+    '.n..222222...444444...111111..n.',
+    '.n..n2222n...n4444n...n1111n..n.',
+    '.n.11111111.33333333.55555555.n.',
+    '.n.n111111n.n333333n.n555555n.n.',
+    '.mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm.',
+    '.nnnnnnnnnnnnnnnnnnnnnnnnnnnnnn.',
+    'KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK',
   ],
   /* Player, one sprite per facing. Right is the left sprite mirrored in CSS. */
   playerDown: [
@@ -213,6 +484,23 @@ function makeGroundTexture() {
 /* Awning colour per destination: Level 1, Level 2, Level 3. */
 const STORE_COLORS = ['#6bbf7a', '#5a9fd4', '#c77fb5'];
 
+/* What is on the racks, per shop. Brandy is pastels — the sprite's own
+   colours — and Skims is its neutrals, so the two rooms read as two different
+   stores without a second set of sprites. */
+const SHOP_PALETTES = {
+  brandy: null,
+  skims: {
+    '1': '#3a3540',   // onyx
+    '2': '#c4ab97',   // sand
+    '3': '#8a7f76',   // clay
+    '4': '#5c5560',   // slate
+    '5': '#e3d5c8'    // bone
+  }
+};
+
+/* Sprites that get one rasterization per shop colourway. */
+const PROP_SPRITES = ['clothingRack', 'clothesStack'];
+
 /* Which sprites get re-rasterized once per outfit. */
 const PLAYER_SPRITES = ['playerDown', 'playerUp', 'playerSide'];
 
@@ -232,6 +520,13 @@ function installSprites() {
     const palette = OUTFITS[outfit].palette;
     PLAYER_SPRITES.forEach(function (name) {
       root.setProperty('--sprite-' + name + '--' + outfit, rasterize(SPRITES[name], palette));
+    });
+  }
+  /* One variable per prop per shop: --sprite-clothingRack--skims and friends. */
+  for (const shop in SHOP_PALETTES) {
+    PROP_SPRITES.forEach(function (name) {
+      root.setProperty('--sprite-' + name + '--' + shop,
+                       rasterize(SPRITES[name], SHOP_PALETTES[shop]));
     });
   }
   root.setProperty('--ground-texture', makeGroundTexture());

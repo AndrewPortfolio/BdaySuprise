@@ -83,6 +83,50 @@ body {
 /* Tiles under a piece of stage artwork: solid to walk into, but never painted. */
 .castle-block { background: none; }
 
+/* Litter. Purely decorative, and the lowest thing on the stage — she walks over
+   it, and it never covers a boss or a fitting. */
+.decal {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Shop fittings — rails and folded stacks, drawn over the solid tiles beneath
+   them. Below the player, so she passes in front of a rack, never through it. */
+.prop {
+  position: absolute;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  z-index: 2;
+}
+
+/* The board naming a shop. Centred on its tile and allowed to overhang it —
+   'Brandy Melville' is wider than 48px and shortening it would be worse. */
+.shop-sign {
+  position: absolute;
+  z-index: 3;
+  transform: translateX(-50%);
+  padding: 3px 7px;
+  white-space: nowrap;
+  font-size: 10px;
+  letter-spacing: .04em;
+  color: var(--paper);
+  background: #2b3040;
+  border: 2px solid #6b7286;
+  border-radius: 3px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, .25);
+  pointer-events: none;
+}
+
+/* A shuttered shop's sign is dimmed with it. */
+.shop-sign.shut { filter: grayscale(1) brightness(.72); opacity: .85; }
+
 /* Stage artwork spanning a block of tiles. pinkCastle.png has no alpha channel,
    so multiply drops its white background onto the ground instead of stamping a
    white box over it. */
@@ -142,25 +186,85 @@ body {
 }
 
 /* Boss markers. Each boss carries its own id as a class, so giving one real
-   art is a single rule here — boss-2 and boss-3 keep the placeholder blob. */
-.boss { background-size: 48px 48px; }
+   art is a single rule here — boss-3 keeps the placeholder blob. */
+/* Above the litter, so nothing dropped near a boss is drawn across them. */
+.boss { position: relative; z-index: 4; background-size: 48px 48px; }
 .boss-1 { background-image: var(--sprite-bossMannequin); }
-.boss-2,
-.boss-3 {
-  background-image:
-    radial-gradient(circle at 38% 32%, #ff9a8a 0 12%, rgba(255, 154, 138, 0) 45%),
-    radial-gradient(circle at 50% 55%, #d64b4b 0 40%, #7a1e1e 41% 62%, rgba(0, 0, 0, 0) 64%);
+.boss-2 { background-image: var(--sprite-bossKim); }
+
+/* June is two tiles wide. The marker tile stays one tile — she walks into his
+   square like any other boss's — and the art overhangs it either side, onto the
+   tiles the map keeps solid for him. Drawn on ::after so it can overflow the
+   tile; the defeated filter on the tile still reaches it.
+
+   Scoped to `.boss` on purpose: the fight panel's portrait carries the boss id
+   as its only class, so a bare .boss-3::after would draw this overhang inside
+   the panel too, on top of the portrait's own copy of him. */
+.boss.boss-3::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -24px;
+  width: 96px;
+  height: 48px;
+  background: var(--sprite-bossJune) no-repeat center / 96px 48px;
+  image-rendering: pixelated;
 }
 .boss.defeated { filter: grayscale(1) brightness(.65) opacity(.65); }
 
 /* The same art, larger, for the portrait in the fight panel. */
 #battle-portrait.boss-1 { background-image: var(--sprite-bossMannequin); }
-#battle-portrait.boss-2,
-#battle-portrait.boss-3 {
-  background-image:
-    radial-gradient(circle at 38% 32%, #ff9a8a 0 12%, rgba(255, 154, 138, 0) 45%),
-    radial-gradient(circle at 50% 55%, #d64b4b 0 40%, #7a1e1e 41% 62%, rgba(0, 0, 0, 0) 64%);
+#battle-portrait.boss-2 { background-image: var(--sprite-bossKim); }
+#battle-portrait.boss-3 { background-image: var(--sprite-bossJune); }
+
+/* One punch landing: a short shake, restarted from zero on every hit. */
+#battle-portrait.hit { animation: punch-shake 220ms steps(4, end); }
+@keyframes punch-shake {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(5px, -2px); }
+  50%  { transform: translate(-4px, 2px); }
+  75%  { transform: translate(3px, 1px); }
+  100% { transform: translate(0, 0); }
 }
+
+/* --- title screen --------------------------------------------------------- */
+#menu {
+  position: absolute;
+  inset: 0;
+  z-index: 40;              /* over the fade, the panel and everything else */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+  padding: 0 24px;
+  background: rgba(15, 24, 15, .93);
+}
+#menu-title {
+  margin: 0;
+  font-size: 40px;
+  letter-spacing: .06em;
+  color: var(--paper);
+  text-shadow: 0 4px 0 #2f8b4c;
+}
+#menu-sub {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: #cfe0b8;
+}
+#menu-start {
+  margin: 26px 0 0;
+  font-size: 11px;
+  color: #9fb08d;
+  animation: menu-blink 1.1s steps(1, end) infinite;
+}
+@keyframes menu-blink { 50% { opacity: .25; } }
+
+/* The other overlays here never set `display`, so the hidden attribute alone
+   does the work. This one has to centre its contents, and an id's display:flex
+   outweighs the attribute — so hiding it needs saying out loud. */
+#menu[hidden] { display: none; }
 
 #player {
   position: absolute;
@@ -306,10 +410,10 @@ body {
   color: #6f7d63;
 }
 #battle-choices button:hover { background: #cfe0b0; }
-/* Keyboard cursor. */
+/* Keyboard cursor. A ring, not a fill: filling the option the cursor happens to
+   start on makes the first answer look like one that has already been picked. */
 #battle-choices button.selected {
-  background: #cfe0b0;
-  box-shadow: inset 0 0 0 2px var(--frame);
+  box-shadow: inset 0 0 0 3px #2f8b4c;
 }
 /* Already tried and wrong — still clickable, just visibly spent. */
 #battle-choices button.ruled-out {

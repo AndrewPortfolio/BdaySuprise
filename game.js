@@ -16,6 +16,7 @@ const state = {
   cameraOffset: { x: 0, y: 0 },
   facing: 'down',       // which way the sprite looks; she turns even when blocked
   outfit: 'default',    // key into OUTFITS — swapped by boss rewards
+  hasKey: false,        // the castle key, handed over when the last boss falls
   /* UI / flow flags */
   battle: null,         // the live fight object while one is open, else null
   inputLocked: false,   // true during transitions and victory beats
@@ -23,9 +24,49 @@ const state = {
   worldVersion: 0       // bumped when the map's appearance changes (locks, doors)
 };
 
-/* --- Phase 3 hook: real sound effects get wired in here ------------------- */
+/* --- sound effects --------------------------------------------------------
+   A name with a file in SFX plays it; every other name is still just a console
+   line, so wiring a new sound up is one entry in data.js.
+
+   Every sound gets a few elements, all fully buffered at boot, and hits take
+   them in turn. A cloned or freshly built element would have to fetch the file
+   again before it made a noise — even from cache that is not instant, and a
+   punch sound that arrives late is worse than no punch sound. Rotating through
+   buffered voices also lets a fast run of punches overlap instead of each one
+   cutting off the last. */
+const SFX_VOICES = 3;
+const SFX_VOLUME = 0.7;
+const sfxPool = {};
+
+function loadSfx(src) {
+  if (!sfxPool[src]) {
+    const voices = [];
+    for (let i = 0; i < SFX_VOICES; i++) {
+      const audio = new Audio(src);
+      audio.preload = 'auto';
+      audio.volume = SFX_VOLUME;
+      audio.load();
+      voices.push(audio);
+    }
+    sfxPool[src] = { voices: voices, next: 0 };
+  }
+  return sfxPool[src];
+}
+
 function playSound(name) {
-  console.log('[playSound]', name);
+  const src = SFX[name];
+  if (!src) {
+    console.log('[playSound]', name);
+    return;
+  }
+  const pool = loadSfx(src);
+  const sfx = pool.voices[pool.next];
+  pool.next = (pool.next + 1) % pool.voices.length;
+  /* Rewinding is a seek, and a seek drops the element out of the buffered
+     state it was preloaded into — so only rewind a voice that has been used. */
+  if (sfx.currentTime !== 0) sfx.currentTime = 0;
+  const started = sfx.play();
+  if (started && started.catch) started.catch(function () {});
 }
 
 /* --- looping music --------------------------------------------------------
@@ -68,10 +109,93 @@ function stopLoop() {
 
 /* Called from the keydown handler: if autoplay blocked us, try once more. */
 function retryBlockedTrack() {
+  if (finaleBlocked) {
+    finaleBlocked = false;
+    resumeFinale();
+  }
   if (!blockedTrack || !currentTrack || currentTrack.src !== blockedTrack) return;
   blockedTrack = null;
   const started = currentTrack.audio.play();
   if (started && started.catch) started.catch(function () {});
+}
+
+/* --- the finale track -----------------------------------------------------
+   Not playLoop: this one plays through once end to end, then repeats the
+   FINALE_LOOP section of itself `times` more times and goes quiet. It runs on
+   its own element and is never touched by playLoop/stopLoop, so it carries
+   across the corridor, the castle and the fireworks without a break.
+
+   The section end is watched on a frame timer rather than 'timeupdate', which
+   only fires about four times a second and would overshoot the loop point by
+   an audible fraction of a second. */
+let finaleAudio = null;
+let finalePassesLeft = 0;
+let finaleWatch = 0;
+let finaleBlocked = false;
+
+function startFinaleMusic() {
+  if (finaleAudio) return;   // already playing — a second cue must not restart it
+  finaleAudio = new Audio(AUDIO.finaleMusic);
+  finaleAudio.volume = 0.55;
+  finaleAudio.loop = false;
+  /* Fires once, when the full play-through finishes. The section repeats never
+     reach the end of the file, so this never fires a second time. */
+  finaleAudio.addEventListener('ended', function () {
+    finalePassesLeft = FINALE_LOOP.times;
+    nextFinalePass();
+  });
+  playFinale();
+}
+
+/* Start one more pass of the looped section, or stop when they are all used.
+
+   The seek is not instant, and until it lands currentTime still reads where the
+   playhead was — which is past the section end and would have the watcher below
+   eat every remaining pass within a few frames. So nothing plays and nothing is
+   watched until 'seeked' says the playhead is actually back at the start. */
+function nextFinalePass() {
+  if (!finaleAudio) return;
+  if (finalePassesLeft <= 0) { stopFinaleMusic(); return; }
+  finalePassesLeft--;
+
+  const audio = finaleAudio;
+  audio.addEventListener('seeked', function () {
+    if (finaleAudio !== audio) return;   // stopped while the seek was in flight
+    playFinale();
+    watchFinaleSection();
+  }, { once: true });
+  audio.currentTime = FINALE_LOOP.start;
+}
+
+function watchFinaleSection() {
+  cancelAnimationFrame(finaleWatch);
+  finaleWatch = requestAnimationFrame(function tick() {
+    if (!finaleAudio) return;
+    if (finaleAudio.currentTime >= FINALE_LOOP.end) { nextFinalePass(); return; }
+    finaleWatch = requestAnimationFrame(tick);
+  });
+}
+
+function playFinale() {
+  const started = finaleAudio.play();
+  if (started && started.catch) started.catch(function () { finaleBlocked = true; });
+}
+
+/* Autoplay refused the finale: pick it up on her next keypress. */
+function resumeFinale() {
+  if (!finaleAudio) return;
+  playFinale();
+  if (finaleAudio.currentTime >= FINALE_LOOP.start) watchFinaleSection();
+}
+
+function stopFinaleMusic() {
+  cancelAnimationFrame(finaleWatch);
+  finaleWatch = 0;
+  finaleBlocked = false;
+  finalePassesLeft = 0;
+  if (!finaleAudio) return;
+  finaleAudio.pause();
+  finaleAudio = null;
 }
 
 /* --- DOM ------------------------------------------------------------------ */
@@ -88,6 +212,7 @@ const battleTextEl = document.getElementById('battle-text');
 const battleAskEl = document.getElementById('battle-ask');
 const battleChoicesEl = document.getElementById('battle-choices');
 const battlePromptEl = document.getElementById('battle-prompt');
+const menuEl = document.getElementById('menu');
 const fireworksEl = document.getElementById('fireworks');
 const bannerEl = document.getElementById('banner');
 const bannerTextEl = document.getElementById('banner-text');
@@ -137,7 +262,7 @@ function tileClasses(ch, stage) {
     /* The Level 3 second exit is indistinguishable from wall until every boss
        is down; then it opens up as a separate door from the Hub entrance. */
     classes.push(allBossesDefeated() ? 'door door-exit' : 'wall');
-  } else if (ch === 'K' || ch === 'G') {
+  } else if (ch === 'K' || ch === 'G' || ch === 'x') {
     classes.push('castle-block');   // artwork covers these; no tile fill
   } else if (ch === 'P') {
     /* Points at whichever shop is open next; -1 (all done) leaves it pointing
@@ -170,6 +295,47 @@ function buildStage(stage) {
       stageEl.appendChild(tile);
     }
   }
+  /* Litter on the floor: art only, no tile behind it and nothing to walk into. */
+  if (stage.decals) {
+    stage.decals.forEach(function (decal) {
+      const bit = document.createElement('div');
+      bit.className = 'decal';
+      bit.style.left = decal.x * TILE + 'px';
+      bit.style.top = decal.y * TILE + 'px';
+      bit.style.backgroundImage = 'var(--sprite-' + decal.sprite + ')';
+      stageEl.appendChild(bit);
+    });
+  }
+
+  /* Shop fittings: sprite artwork over the tiles the map marked solid. */
+  if (stage.props) {
+    stage.props.forEach(function (prop) {
+      const art = document.createElement('div');
+      art.className = 'prop';
+      art.style.left = prop.x * TILE + 'px';
+      art.style.top = prop.y * TILE + 'px';
+      art.style.width = prop.w * TILE + 'px';
+      art.style.height = prop.h * TILE + 'px';
+      art.style.backgroundImage =
+        'var(--sprite-' + prop.sprite + (prop.shop ? '--' + prop.shop : '') + ')';
+      stageEl.appendChild(art);
+    });
+  }
+
+  /* Shop signs: real text, so the names are readable at this tile size. */
+  if (stage.signs) {
+    stage.signs.forEach(function (sign) {
+      const board = document.createElement('div');
+      /* Deliberately not the storefront's `locked` class: that one carries a
+         position and a shutter overlay meant for a tile. */
+      board.className = 'shop-sign' + (pathUnlocked(sign.path) ? '' : ' shut');
+      board.textContent = sign.label;
+      board.style.left = (sign.x + 0.5) * TILE + 'px';
+      board.style.top = sign.y * TILE + 'px';
+      stageEl.appendChild(board);
+    });
+  }
+
   if (stage.structure) {
     const art = document.createElement('div');
     art.className = 'structure';
@@ -332,15 +498,23 @@ function renderBattle() {
   battleChoicesEl.hidden = !asking;
   if (asking) {
     const question = currentQuestion(battle);
-    battleAskEl.textContent =
-      'Q' + (battle.questionIndex + 1) + '/' + boss.questions.length + '  ' + question.ask;
+    /* The counter is worth showing over a set of questions; over a single
+       one — the last boss's — it just gets in the way of the line. */
+    battleAskEl.textContent = boss.questions.length > 1
+      ? 'Q' + (battle.questionIndex + 1) + '/' + boss.questions.length + '  ' + question.ask
+      : question.ask;
     buildChoices(battle, question);
   }
 
   battlePromptEl.hidden = asking;
   if (!asking) {
-    battlePromptEl.textContent =
-      battle.phase === 'victory' ? 'press Enter to take them' : 'press Enter';
+    if (battle.phase === 'punch') {
+      battlePromptEl.textContent = 'press Enter to punch';
+    } else if (battle.phase === 'victory') {
+      battlePromptEl.textContent = (boss.reward && boss.reward.prompt) || 'press Enter';
+    } else {
+      battlePromptEl.textContent = 'press Enter';
+    }
   }
 }
 
@@ -392,6 +566,15 @@ function answerQuestion(choiceIndex) {
     return;
   }
 
+  /* Right, in a punch fight: his hp is already gone, so the answer ends it. */
+  if (boss.mode === 'punch') {
+    battle.phase = 'victory';
+    battle.line = boss.victory;
+    playSound('boss-defeated');
+    render();
+    return;
+  }
+
   /* Right: she takes a hit and reacts before the next question comes up. */
   battle.hp = Math.max(0, battle.hp - boss.damagePerAnswer);
   battle.line = boss.hitLines[Math.min(battle.hitCount, boss.hitLines.length - 1)];
@@ -401,6 +584,31 @@ function answerQuestion(choiceIndex) {
   render();
 }
 
+/* One punch: always lands, always hurts. The last one does not draw a hit line
+   — it drops him, and he asks his question instead. */
+function throwPunch(battle, boss) {
+  battle.hp = Math.max(0, battle.hp - boss.damagePerAnswer);
+  playSound('punch');
+
+  if (battle.hp <= 0) {
+    battle.line = boss.beaten;
+    battle.phase = 'question';
+    battle.selected = 0;
+  } else {
+    battle.line = boss.hitLines[Math.min(battle.hitCount, boss.hitLines.length - 1)];
+    battle.hitCount++;
+  }
+  render();
+  flashHit();   // after the render, which rewrites the portrait's class
+}
+
+/* A quick shake on the portrait, restarted from zero on every punch. */
+function flashHit() {
+  battlePortraitEl.classList.remove('hit');
+  void battlePortraitEl.offsetWidth;
+  battlePortraitEl.classList.add('hit');
+}
+
 /* Enter/Space: the only thing that moves intro, hit and victory along. */
 function advanceBattle() {
   const battle = state.battle;
@@ -408,8 +616,14 @@ function advanceBattle() {
   const boss = BOSSES[battle.bossIndex];
 
   if (battle.phase === 'intro') {
-    battle.phase = 'question';
+    battle.phase = boss.mode === 'punch' ? 'punch' : 'question';
     render();
+    return;
+  }
+
+  /* Every Enter is one more punch until he is down. */
+  if (battle.phase === 'punch') {
+    throwPunch(battle, boss);
     return;
   }
 
@@ -445,6 +659,10 @@ function finishBattle() {
      the lobby fades back in. */
   if (boss.reward && boss.reward.outfit) {
     state.outfit = boss.reward.outfit;
+    playSound('reward');
+  }
+  if (boss.reward && boss.reward.key) {
+    state.hasKey = true;
     playSound('reward');
   }
   endBattle();
@@ -502,7 +720,16 @@ function tryStep(dx, dy) {
   }
 
   if (ch === 'K') return;                 // castle walls
-  if (ch === 'G') { unlockCastle(); return; }
+  if (ch === 'x') return;                 // racks and shelves are furniture
+  if (ch === 'G') {
+    if (!state.hasKey) {
+      playSound('locked');
+      showToast('The gate is locked. The key is the last boss\'s.', 1200);
+      return;
+    }
+    unlockCastle();
+    return;
+  }
   if (ch === 'D') { transitionTo('hub'); return; }
   if (ch === 'C') { transitionTo('castle'); return; }
 
@@ -524,6 +751,9 @@ function tryStep(dx, dy) {
 
   state.playerTile = { x: tx, y: ty };
   playSound('step');
+  /* Halfway down the corridor the finale track starts, and from here it runs
+     unbroken through the gate, the fireworks and the banner. */
+  if (stage.musicCue && ty >= stage.musicCue.y) startFinaleMusic();
   render();
 }
 
@@ -541,6 +771,12 @@ function step(now) {
 /* --- input ---------------------------------------------------------------- */
 document.addEventListener('keydown', function (e) {
   retryBlockedTrack();   // first keypress is the gesture autoplay was waiting for
+
+  if (menuOpen) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startGame(); }
+    return;
+  }
+
   if (replayArmed) { replay(); return; }
 
   /* In a fight the arrow keys drive the answer cursor, not the player. */
@@ -583,6 +819,19 @@ battleEl.addEventListener('click', function (e) {
   /* Anywhere else in the panel advances the lines she has to read. */
   if (state.battle.phase !== 'question') advanceBattle();
 });
+
+/* --- title screen ---------------------------------------------------------
+   Up until Enter is pressed. Nothing else reads input while it is, and the
+   keypress that dismisses it is also the gesture the audio was waiting for. */
+let menuOpen = true;
+
+function startGame() {
+  if (!menuOpen) return;
+  menuOpen = false;
+  menuEl.hidden = true;
+  state.inputLocked = false;
+  playSound('game-start');
+}
 
 /* --- castle: fireworks + banner ------------------------------------------- */
 let replayArmed = false;
@@ -634,11 +883,15 @@ function replay() {
   state.bossesDefeated = [false, false, false];
   state.castleUnlocked = false;
   state.outfit = 'default';
+  state.hasKey = false;
+  stopFinaleMusic();
   state.worldVersion++;
   transitionTo('hub');
 }
 
 /* --- boot ----------------------------------------------------------------- */
 installSprites();
+for (const name in SFX) loadSfx(SFX[name]);   // fetched before they are needed
+state.inputLocked = true;                     // she is on the title screen
 render({ instant: true });
 requestAnimationFrame(step);
