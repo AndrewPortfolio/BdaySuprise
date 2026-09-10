@@ -87,6 +87,37 @@ function makeRoomMap(opts) {
   ];
 }
 
+/* The state June leaves his shop in. Decals are decoration only — they are not
+   in the map, so she walks straight over them — and the positions are in tiles,
+   fractional on purpose so the litter does not sit on a grid. It is banked up
+   around him and thins out towards the door. */
+const JUNE_TRASH = [
+  /* Banked up against him first — above, either side, and underfoot. */
+  { sprite: 'trashCan',   x: 5.5, y: 1.1 },
+  { sprite: 'trashPaper', x: 4.3, y: 1.1 },
+  { sprite: 'trashCan',   x: 3.1, y: 1.2 },
+  { sprite: 'trashPaper', x: 6.6, y: 1.1 },
+  { sprite: 'trashSock',  x: 2.9, y: 2.6 },
+  { sprite: 'trashShoe',  x: 6.9, y: 2.6 },
+  { sprite: 'trashSpill', x: 4.4, y: 2.9 },
+  { sprite: 'trashBag',   x: 5.1, y: 3.1 },
+  { sprite: 'trashShirt', x: 3.4, y: 3.2 },
+  { sprite: 'trashPizza', x: 6.3, y: 3.3 },
+  { sprite: 'trashBox',   x: 1.6, y: 1.5 },
+  { sprite: 'trashSock',  x: 8.0, y: 1.4 },
+  { sprite: 'trashBag',   x: 2.2, y: 2.4 },
+  { sprite: 'trashSpill', x: 7.3, y: 2.2 },
+  /* Then thinning out towards the door she comes in by. */
+  { sprite: 'trashCan',   x: 4.5, y: 4.0 },
+  { sprite: 'trashShoe',  x: 2.6, y: 4.1 },
+  { sprite: 'trashPaper', x: 7.5, y: 3.9 },
+  { sprite: 'trashSpill', x: 4.0, y: 4.7 },
+  { sprite: 'trashCan',   x: 2.2, y: 5.4 },
+  { sprite: 'trashShirt', x: 7.0, y: 5.2 },
+  { sprite: 'trashPaper', x: 4.3, y: 5.9 },
+  { sprite: 'trashPizza', x: 6.6, y: 6.1 }
+];
+
 /* The fittings for one shop, in the layout makeRoomMap marks solid above.
    `shop` picks the colourway the racks are rasterized in. */
 function shopProps(shop) {
@@ -155,7 +186,10 @@ const AUDIO = {
 const FINALE_LOOP = { start: 7, end: 21, times: 10 };
 
 /* Sound effects. Anything playSound() is called with that is NOT listed here
-   is still just a console line, so adding a sound is one entry. */
+   is still just a console line, so adding a sound is one entry.
+
+   The fireworks are deliberately not one of them: the finale track is playing
+   over that whole scene, and the two together were a mess. */
 const SFX = {
   punch: './audio/punch.mp3'
 };
@@ -333,7 +367,8 @@ const STAGES = {
     name: 'Level 3',
     map: makeRoomMap({ exit: true, wideBoss: true }),
     spawn: { x: 5, y: 7 },
-    boss: 2
+    boss: 2,
+    decals: JUNE_TRASH
   },
   corridor: {
     id: 'corridor',

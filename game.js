@@ -35,6 +35,7 @@ const state = {
    buffered voices also lets a fast run of punches overlap instead of each one
    cutting off the last. */
 const SFX_VOICES = 3;
+const SFX_VOLUME = 0.7;
 const sfxPool = {};
 
 function loadSfx(src) {
@@ -43,7 +44,7 @@ function loadSfx(src) {
     for (let i = 0; i < SFX_VOICES; i++) {
       const audio = new Audio(src);
       audio.preload = 'auto';
-      audio.volume = 0.7;
+      audio.volume = SFX_VOLUME;
       audio.load();
       voices.push(audio);
     }
@@ -294,6 +295,18 @@ function buildStage(stage) {
       stageEl.appendChild(tile);
     }
   }
+  /* Litter on the floor: art only, no tile behind it and nothing to walk into. */
+  if (stage.decals) {
+    stage.decals.forEach(function (decal) {
+      const bit = document.createElement('div');
+      bit.className = 'decal';
+      bit.style.left = decal.x * TILE + 'px';
+      bit.style.top = decal.y * TILE + 'px';
+      bit.style.backgroundImage = 'var(--sprite-' + decal.sprite + ')';
+      stageEl.appendChild(bit);
+    });
+  }
+
   /* Shop fittings: sprite artwork over the tiles the map marked solid. */
   if (stage.props) {
     stage.props.forEach(function (prop) {
@@ -878,7 +891,7 @@ function replay() {
 
 /* --- boot ----------------------------------------------------------------- */
 installSprites();
-for (const name in SFX) loadSfx(SFX[name]);   // fetched before the first punch
+for (const name in SFX) loadSfx(SFX[name]);   // fetched before they are needed
 state.inputLocked = true;                     // she is on the title screen
 render({ instant: true });
 requestAnimationFrame(step);
