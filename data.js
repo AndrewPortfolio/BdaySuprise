@@ -67,15 +67,19 @@ const HUB_MAP = [
    `shopFittings` fills the two clothing shops out: rails down both side walls
    and folded stacks below them. They are solid, and the column she walks up to
    reach the boss stays clear. The art sits in the stage's `props`. */
-function makeRoomMap(withExit, shopFittings) {
-  const racks  = shopFittings ? '#xxx...xxx#' : '#.........#';
-  const stacks = shopFittings ? '#xx.....xx#' : '#.........#';
+function makeRoomMap(opts) {
+  const o = opts || {};
+  const racks  = o.fittings ? '#xxx...xxx#' : '#.........#';
+  const stacks = o.fittings ? '#xx.....xx#' : '#.........#';
+  /* June is two tiles wide, so the tiles his art overhangs are solid too —
+     otherwise she could stand inside him. */
+  const bossRow = o.wideBoss ? '#...xBx...#' : '#....B....#';
   return [
     '###########',
     '#.........#',
-    '#....B....#',
+    bossRow,
     racks,
-    withExit ? '#.........E' : '#.........#',
+    o.exit ? '#.........E' : '#.........#',
     '#.........#',
     stacks,
     '#.........#',
@@ -311,7 +315,7 @@ const STAGES = {
   level1: {
     id: 'level1',
     name: 'Level 1',
-    map: makeRoomMap(false, true),
+    map: makeRoomMap({ fittings: true }),
     spawn: { x: 5, y: 7 },
     boss: 0,
     props: shopProps('brandy')
@@ -319,7 +323,7 @@ const STAGES = {
   level2: {
     id: 'level2',
     name: 'Level 2',
-    map: makeRoomMap(false, true),
+    map: makeRoomMap({ fittings: true }),
     spawn: { x: 5, y: 7 },
     boss: 1,
     props: shopProps('skims')
@@ -327,7 +331,7 @@ const STAGES = {
   level3: {
     id: 'level3',
     name: 'Level 3',
-    map: makeRoomMap(true),
+    map: makeRoomMap({ exit: true, wideBoss: true }),
     spawn: { x: 5, y: 7 },
     boss: 2
   },

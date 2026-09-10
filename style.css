@@ -174,24 +174,30 @@ body {
 
 /* Boss markers. Each boss carries its own id as a class, so giving one real
    art is a single rule here — boss-3 keeps the placeholder blob. */
-.boss { background-size: 48px 48px; }
+.boss { position: relative; background-size: 48px 48px; }
 .boss-1 { background-image: var(--sprite-bossMannequin); }
 .boss-2 { background-image: var(--sprite-bossKim); }
-.boss-3 {
-  background-image:
-    radial-gradient(circle at 38% 32%, #ff9a8a 0 12%, rgba(255, 154, 138, 0) 45%),
-    radial-gradient(circle at 50% 55%, #d64b4b 0 40%, #7a1e1e 41% 62%, rgba(0, 0, 0, 0) 64%);
+
+/* June is two tiles wide. The marker tile stays one tile — she walks into his
+   square like any other boss's — and the art overhangs it either side, onto the
+   tiles the map keeps solid for him. Drawn on ::after so it can overflow the
+   tile; the defeated filter on the tile still reaches it. */
+.boss-3::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -24px;
+  width: 96px;
+  height: 48px;
+  background: var(--sprite-bossJune) no-repeat center / 96px 48px;
+  image-rendering: pixelated;
 }
 .boss.defeated { filter: grayscale(1) brightness(.65) opacity(.65); }
 
 /* The same art, larger, for the portrait in the fight panel. */
 #battle-portrait.boss-1 { background-image: var(--sprite-bossMannequin); }
 #battle-portrait.boss-2 { background-image: var(--sprite-bossKim); }
-#battle-portrait.boss-3 {
-  background-image:
-    radial-gradient(circle at 38% 32%, #ff9a8a 0 12%, rgba(255, 154, 138, 0) 45%),
-    radial-gradient(circle at 50% 55%, #d64b4b 0 40%, #7a1e1e 41% 62%, rgba(0, 0, 0, 0) 64%);
-}
+#battle-portrait.boss-3 { background-image: var(--sprite-bossJune); }
 
 /* One punch landing: a short shake, restarted from zero on every hit. */
 #battle-portrait.hit { animation: punch-shake 220ms steps(4, end); }
@@ -202,6 +208,45 @@ body {
   75%  { transform: translate(3px, 1px); }
   100% { transform: translate(0, 0); }
 }
+
+/* --- title screen --------------------------------------------------------- */
+#menu {
+  position: absolute;
+  inset: 0;
+  z-index: 40;              /* over the fade, the panel and everything else */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+  padding: 0 24px;
+  background: rgba(15, 24, 15, .93);
+}
+#menu-title {
+  margin: 0;
+  font-size: 40px;
+  letter-spacing: .06em;
+  color: var(--paper);
+  text-shadow: 0 4px 0 #2f8b4c;
+}
+#menu-sub {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: #cfe0b8;
+}
+#menu-start {
+  margin: 26px 0 0;
+  font-size: 11px;
+  color: #9fb08d;
+  animation: menu-blink 1.1s steps(1, end) infinite;
+}
+@keyframes menu-blink { 50% { opacity: .25; } }
+
+/* The other overlays here never set `display`, so the hidden attribute alone
+   does the work. This one has to centre its contents, and an id's display:flex
+   outweighs the attribute — so hiding it needs saying out loud. */
+#menu[hidden] { display: none; }
 
 #player {
   position: absolute;

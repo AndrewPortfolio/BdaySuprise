@@ -32,6 +32,9 @@ const PALETTE = {
                                 //   so the silhouette does not go to one blob
   /* Shop fittings. The five garment colours are the shop's own — they are
      what SHOP_PALETTES swaps to give each store its colourway. */
+  /* June */
+  T: '#D2B48C',                 // his skin
+  v: '#4a5f7a',                 // his shirt
   m: '#a8b0bd',                 // chrome rail / shelf board
   n: '#6a7280',                 // chrome in shadow — posts, feet, frame
   '1': '#f4a6c0',
@@ -140,6 +143,28 @@ const SPRITES = {
     '.....XMMMMX.....',
     '......XppX......',
     '...XAAAAAAAAX...'
+  ],
+  /* June: twice the width of every other model — the sprite is 32 wide where
+     the rest are 16, so he is drawn across two tiles. Dark hair with the braid
+     pulled forward over one shoulder, where it reads at this size; behind him
+     it would just be head-shaped. */
+  bossJune: [
+    '...........BBBBBBBBBB...........',
+    '..........BBbbbbbbbbBB..........',
+    '..........BBTTTTTTTTBB..........',
+    '..........BBTEETTEETBB..........',
+    '..........BBTTTTTTTTBB..........',
+    '..........BBTTTXXTTTBB..........',
+    '..........BBBTTTTTTTBB..........',
+    '.....XvvvvvbbbTTTTvvvvvvvvX.....',
+    '.....XvvvvBBBvvvvvvvvvvvvvX.....',
+    '.....XTTTvvbbbvvvvvvvvvTTTX.....',
+    '.....XTTTvBBBvvvvvvvvvvTTTX.....',
+    '.........NNXXNNNNNNNNNN.........',
+    '.........NNNNNNNNNNNNNN.........',
+    '..........TTTTT..TTTTT..........',
+    '..........TTTTT..TTTTT..........',
+    '....KKKKKKKKKKKKKKKKKKKKKKKK....',
   ],
   /* Shop fittings. Both are wider than one tile — a rail of clothes reads as a
      rail only when it actually runs the length of a wall — so they are drawn

@@ -211,6 +211,7 @@ const battleTextEl = document.getElementById('battle-text');
 const battleAskEl = document.getElementById('battle-ask');
 const battleChoicesEl = document.getElementById('battle-choices');
 const battlePromptEl = document.getElementById('battle-prompt');
+const menuEl = document.getElementById('menu');
 const fireworksEl = document.getElementById('fireworks');
 const bannerEl = document.getElementById('banner');
 const bannerTextEl = document.getElementById('banner-text');
@@ -757,6 +758,12 @@ function step(now) {
 /* --- input ---------------------------------------------------------------- */
 document.addEventListener('keydown', function (e) {
   retryBlockedTrack();   // first keypress is the gesture autoplay was waiting for
+
+  if (menuOpen) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startGame(); }
+    return;
+  }
+
   if (replayArmed) { replay(); return; }
 
   /* In a fight the arrow keys drive the answer cursor, not the player. */
@@ -799,6 +806,19 @@ battleEl.addEventListener('click', function (e) {
   /* Anywhere else in the panel advances the lines she has to read. */
   if (state.battle.phase !== 'question') advanceBattle();
 });
+
+/* --- title screen ---------------------------------------------------------
+   Up until Enter is pressed. Nothing else reads input while it is, and the
+   keypress that dismisses it is also the gesture the audio was waiting for. */
+let menuOpen = true;
+
+function startGame() {
+  if (!menuOpen) return;
+  menuOpen = false;
+  menuEl.hidden = true;
+  state.inputLocked = false;
+  playSound('game-start');
+}
 
 /* --- castle: fireworks + banner ------------------------------------------- */
 let replayArmed = false;
@@ -859,5 +879,6 @@ function replay() {
 /* --- boot ----------------------------------------------------------------- */
 installSprites();
 for (const name in SFX) loadSfx(SFX[name]);   // fetched before the first punch
+state.inputLocked = true;                     // she is on the title screen
 render({ instant: true });
 requestAnimationFrame(step);
