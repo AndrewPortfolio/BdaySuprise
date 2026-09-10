@@ -1,10 +1,6 @@
-/* ---------------------------------------------------------------------------
-   sprites.js — pixel art, authored as string maps and rasterized to data: URLs
-   at boot. No image files, so nothing to break under file:// or on Vercel.
-
-   Each sprite is 16x16 characters. Add a character to PALETTE, use it in a
-   sprite, and it just works. Rows must all be 16 wide.
-   --------------------------------------------------------------------------- */
+// Pixel art as string maps, rasterized to data: URLs at boot — no image files,
+// so nothing breaks under file:// or once deployed. Sprites are 16x16 unless a
+// comment says otherwise, and every row of one must be the same width.
 
 const PALETTE = {
   '.': null,                    // transparent
@@ -20,22 +16,20 @@ const PALETTE = {
   h: '#543926',                 // hair highlight / centre part
   N: '#17171c',                 // black tube top
   P: '#D3D3D3',                 // light grey sweats (recoloured per outfit)
-  /* Brandy Boss */
+  // Brandy Boss
   Y: '#e6c56f',                 // blonde bob
   M: '#e3cdb8',                 // mannequin plastic
   R: '#c95d7e',                 // pursed lip
   Q: '#FFA3C7',                 // the pink sweats she is guarding
-  /* Skims Boss — same mannequin, dark on dark */
+  // Skims Boss
   B: '#241d2b',                 // black hair
   b: '#4a3f56',                 // hair sheen / centre part
   D: '#4f4956',                 // dark Skims dress — kept off the outline colour
                                 //   so the silhouette does not go to one blob
-  /* Shop fittings. The five garment colours are the shop's own — they are
-     what SHOP_PALETTES swaps to give each store its colourway. */
-  /* June */
+  // June
   T: '#D2B48C',                 // his skin
   v: '#4a5f7a',                 // his shirt
-  /* The mess around him */
+  // The mess around him
   c: '#c0392b',                 // soda red / pepperoni / a dumped tee
   g: '#c9ced6',                 // aluminium, plastic, a grey sock
   j: '#b98a53',                 // cardboard, pizza crust
@@ -44,6 +38,7 @@ const PALETTE = {
   q: 'rgba(74, 58, 84, .5)',    // something spilled and left
   m: '#a8b0bd',                 // chrome rail / shelf board
   n: '#6a7280',                 // chrome in shadow — posts, feet, frame
+  // Garments. SHOP_PALETTES swaps these to give each store its colourway.
   '1': '#f4a6c0',
   '2': '#f6d9a0',
   '3': '#bcd9f0',
@@ -52,8 +47,7 @@ const PALETTE = {
 };
 
 const SPRITES = {
-  /* A shop entrance: striped awning over a glass door. Used for the three
-     paths out of the lobby, recoloured per destination. */
+  // Shop entrance, recoloured per destination.
   store: [
     '................',
     '..XXXXXXXXXXXX..',
@@ -72,8 +66,7 @@ const SPRITES = {
     '....KKKKKKKK....',
     '................'
   ],
-  /* Wayfinding sign: horizontal board on a post. The side version points left
-     and is mirrored in CSS to point right. */
+  // Points left; mirrored in CSS to point right.
   signArrowSide: [
     '................',
     '.XXXXXXXXXXXXXX.',
@@ -110,8 +103,7 @@ const SPRITES = {
     '....KKKKKKKK....',
     '................'
   ],
-  /* Brandy Boss: a snooty mannequin on a stand — blonde bob, sunglasses pushed
-     up into it, arms folded around the pink sweats she refuses to hand over. */
+  // A mannequin on a stand, arms folded around the sweats she will not hand over.
   bossMannequin: [
     '................',
     '.....YYYYYY.....',
@@ -130,9 +122,7 @@ const SPRITES = {
     '......XppX......',
     '...XAAAAAAAAX...'
   ],
-  /* Skims Boss: the same mannequin on the same stand, so the two read as one
-     shop chain — black hair worn long past the shoulders instead of the blonde
-     bob, and a dark dress where the Brandy one holds the pink sweats. */
+  // The same mannequin and stand as above, so the two read as one chain.
   bossKim: [
     '................',
     '.....BBBBBB.....',
@@ -151,10 +141,8 @@ const SPRITES = {
     '......XppX......',
     '...XAAAAAAAAX...'
   ],
-  /* June: twice the width of every other model — the sprite is 32 wide where
-     the rest are 16, so he is drawn across two tiles. Dark hair with the braid
-     pulled forward over one shoulder, where it reads at this size; behind him
-     it would just be head-shaped. */
+  // 32 wide where every other model is 16, so he is drawn across two tiles. The
+  // braid is pulled forward because behind him it would just read as head-shaped.
   bossJune: [
     '...........BBBBBBBBBB...........',
     '..........BBbbbbbbbbBB..........',
@@ -173,8 +161,7 @@ const SPRITES = {
     '..........TTTTT..TTTTT..........',
     '....KKKKKKKKKKKKKKKKKKKKKKKK....',
   ],
-  /* Litter. One tile each, and every one of them is decoration only — they are
-     drawn from a stage's decal list, never from the map, so she walks over them. */
+  // Litter, one tile each. Drawn from a stage's decal list, never the map.
   trashCan: [
     '................',
     '................',
@@ -337,10 +324,8 @@ const SPRITES = {
     '................',
     '................'
   ],
-  /* Shop fittings. Both are wider than one tile — a rail of clothes reads as a
-     rail only when it actually runs the length of a wall — so they are drawn
-     from the stage's prop list over tiles the map marks solid, the same way
-     the castle artwork is. */
+  // Wider than one tile: a rail reads as a rail only when it runs the length of
+  // a wall. Drawn from the stage's prop list, over tiles the map marks solid.
   clothingRack: [
     '................................................',
     '....nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn....',
@@ -377,7 +362,7 @@ const SPRITES = {
     '.nnnnnnnnnnnnnnnnnnnnnnnnnnnnnn.',
     'KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK',
   ],
-  /* Player, one sprite per facing. Right is the left sprite mirrored in CSS. */
+  // One per facing; right is this one mirrored in CSS.
   playerDown: [
     '................',
     '.....HHHHHH.....',
@@ -434,8 +419,7 @@ const SPRITES = {
   ]
 };
 
-/* Draw a sprite at the size it will actually be shown, so no browser upscaling
-   softens the pixels. */
+// Drawn at the size it will actually be shown, so no upscaling softens it.
 function rasterize(rows, overrides) {
   const scale = TILE / 16;
   const canvas = document.createElement('canvas');
@@ -455,11 +439,10 @@ function rasterize(rows, overrides) {
   return 'url(' + canvas.toDataURL() + ')';
 }
 
-/* A seamless scatter of faint specks for the ground. Drawn once and repeated,
-   at a size that is NOT a multiple of TILE so the repeat never lines up with
-   the tile edges and re-creates the grid we just got rid of. */
+// Faint specks for the ground, on a pitch that is NOT a multiple of TILE — so
+// the repeat never lines up with the tile edges and redraws the grid.
 function makeGroundTexture() {
-  const size = 224;   /* 4.67 tiles — a big enough pitch that the repeat reads as scatter */
+  const size = 224;   // 4.67 tiles — big enough that the repeat reads as scatter
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext('2d');
@@ -469,7 +452,7 @@ function makeGroundTexture() {
     const y = Math.random() * size;
     const r = 0.8 + Math.random() * 1.5;
     ctx.fillStyle = 'rgba(0, 0, 0, ' + (0.02 + Math.random() * 0.035).toFixed(3) + ')';
-    /* Draw each speck up to four times so ones near an edge wrap cleanly. */
+    // Up to four times each, so specks near an edge wrap cleanly.
     for (const dx of [0, x < r ? size : x > size - r ? -size : 0]) {
       for (const dy of [0, y < r ? size : y > size - r ? -size : 0]) {
         ctx.beginPath();
@@ -481,12 +464,11 @@ function makeGroundTexture() {
   return 'url(' + canvas.toDataURL() + ')';
 }
 
-/* Awning colour per destination: Level 1, Level 2, Level 3. */
+// Awning colour per destination.
 const STORE_COLORS = ['#6bbf7a', '#5a9fd4', '#c77fb5'];
 
-/* What is on the racks, per shop. Brandy is pastels — the sprite's own
-   colours — and Skims is its neutrals, so the two rooms read as two different
-   stores without a second set of sprites. */
+// Brandy keeps the sprite's own pastels, Skims takes neutrals — two different
+// stores out of one set of sprites.
 const SHOP_PALETTES = {
   brandy: null,
   skims: {
@@ -498,14 +480,14 @@ const SHOP_PALETTES = {
   }
 };
 
-/* Sprites that get one rasterization per shop colourway. */
+// One rasterization each per shop colourway.
 const PROP_SPRITES = ['clothingRack', 'clothesStack'];
 
-/* Which sprites get re-rasterized once per outfit. */
+// Re-rasterized once per outfit.
 const PLAYER_SPRITES = ['playerDown', 'playerUp', 'playerSide'];
 
-/* Expose every sprite to CSS as a custom property: --sprite-playerDown, and
-   --sprite-playerDown--pinkSweats for the outfit variants. */
+// Every sprite becomes a CSS custom property: --sprite-playerDown, and
+// --sprite-playerDown--pinkSweats for the variants.
 function installSprites() {
   const root = document.documentElement.style;
   for (const name in SPRITES) {
@@ -514,15 +496,14 @@ function installSprites() {
   STORE_COLORS.forEach(function (color, i) {
     root.setProperty('--sprite-store' + (i + 1), rasterize(SPRITES.store, { A: color }));
   });
-  /* One extra rasterization per player sprite per outfit — CSS then just picks
-     the right variable off #player[data-outfit]. */
+  // CSS then picks the right variable off #player[data-outfit].
   for (const outfit in OUTFITS) {
     const palette = OUTFITS[outfit].palette;
     PLAYER_SPRITES.forEach(function (name) {
       root.setProperty('--sprite-' + name + '--' + outfit, rasterize(SPRITES[name], palette));
     });
   }
-  /* One variable per prop per shop: --sprite-clothingRack--skims and friends. */
+  // --sprite-clothingRack--skims and friends.
   for (const shop in SHOP_PALETTES) {
     PROP_SPRITES.forEach(function (name) {
       root.setProperty('--sprite-' + name + '--' + shop,
