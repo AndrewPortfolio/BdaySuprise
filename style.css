@@ -1,5 +1,4 @@
-/* Placeholder art only — colored rectangles. Real art lands in a later phase.
-   Durations here mirror STEP_MS (140ms) and FADE_MS (220ms) in data.js. */
+/* Durations here mirror STEP_MS (140ms) and FADE_MS (220ms) in data.js. */
 
 :root {
   --ink: #0f180f;
@@ -12,15 +11,45 @@
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;   /* dvh keeps the mobile URL bar from cropping the pad */
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 10px;
+  padding: 8px;
   background: #171a1f;
   color: var(--paper);
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* A game, not a document: no rubber-banding, no double-tap zoom, and no text
+     selection when a finger rests on the d-pad. */
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-#game { text-align: center; }
+/* --- fitting the screen ---------------------------------------------------
+   The stage is a fixed 15x11 grid of 48px art and stays that way. On a screen
+   too small for it, game.js scales the whole block down as one piece, so the
+   pixels keep their ratio and not a single thing reflows. #game is taken out
+   of flow so its own layout size stays the natural one to measure and scale
+   from; #fit is what the page lays out, sized to the result. */
+#fit {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+#game {
+  position: absolute;
+  top: 0;
+  left: 0;
+  text-align: center;
+  transform-origin: top left;
+}
 
 #viewport {
   /* content-box so the frame border sits outside the 480x352 tile viewport —
@@ -40,11 +69,9 @@ body {
   color: #6f7d63;
 }
 
-/* --- stage + tiles -------------------------------------------------------- */
-/* The ground is painted ONCE on the stage, not per tile — that is what removes
-   the visible grid. Floor tiles are transparent holes onto this surface, and
-   the speck texture repeats on a 112px pitch that does not divide TILE, so the
-   repeat never lines up with tile edges. */
+/* --- stage + tiles ---
+   The ground is painted once on the stage, not per tile — that is what removes
+   the visible grid. Floor tiles are transparent holes onto it. */
 #stage {
   position: absolute;
   top: 0;
@@ -57,7 +84,7 @@ body {
   background-repeat: repeat;
 }
 
-/* Per-stage ground. The Hub is the off-white lobby. */
+/* Per-stage ground. */
 #stage[data-scene="hub"]      { --ground: #FAF9F6; }
 #stage[data-scene="level1"]   { --ground: #e6ecf5; }
 #stage[data-scene="level2"]   { --ground: #f5ebe2; }
@@ -77,14 +104,13 @@ body {
   image-rendering: pixelated;
 }
 
-/* Floor is a hole onto the stage ground — no fill, no outline, no seam. */
+/* A hole onto the stage ground: no fill, no outline, no seam. */
 .floor { background: none; }
 
-/* Tiles under a piece of stage artwork: solid to walk into, but never painted. */
+/* Under stage artwork: solid to walk into, never painted. */
 .castle-block { background: none; }
 
-/* Litter. Purely decorative, and the lowest thing on the stage — she walks over
-   it, and it never covers a boss or a fitting. */
+/* The lowest thing on the stage: she walks over it, and it covers nothing. */
 .decal {
   position: absolute;
   width: 48px;
@@ -96,8 +122,7 @@ body {
   pointer-events: none;
 }
 
-/* Shop fittings — rails and folded stacks, drawn over the solid tiles beneath
-   them. Below the player, so she passes in front of a rack, never through it. */
+/* Below the player, so she passes in front of a rack rather than through it. */
 .prop {
   position: absolute;
   background-repeat: no-repeat;
@@ -106,8 +131,8 @@ body {
   z-index: 2;
 }
 
-/* The board naming a shop. Centred on its tile and allowed to overhang it —
-   'Brandy Melville' is wider than 48px and shortening it would be worse. */
+/* Allowed to overhang its tile: 'Brandy Melville' is wider than 48px, and
+   shortening the name would be worse. */
 .shop-sign {
   position: absolute;
   z-index: 3;
@@ -124,7 +149,7 @@ body {
   pointer-events: none;
 }
 
-/* A shuttered shop's sign is dimmed with it. */
+/* Dimmed while its shop is shuttered. */
 .shop-sign.shut { filter: grayscale(1) brightness(.72); opacity: .85; }
 
 /* Stage artwork spanning a block of tiles. pinkCastle.png has no alpha channel,
@@ -139,25 +164,23 @@ body {
   z-index: 2;
 }
 
-/* Walls are a flat continuous mass — adjacent wall tiles share an edge with
-   nothing drawn on it, so the whole block reads as one shape, not tiles. */
+/* Nothing is drawn on the shared edges, so a block of wall reads as one shape. */
 .wall { background-color: #3b4250; }
 
-/* The lobby boundary: pink, dark enough to read as an edge against the
-   off-white floor without competing with the signpost or the storefronts. */
+/* Dark enough to read as an edge against the off-white floor. */
 #stage[data-scene="hub"] .wall { background-color: #FFB6C1; }
 
-/* Wayfinding signpost: one board that re-points as each shop opens. */
+/* One board, re-pointed as each shop opens. */
 .signpost { background-image: var(--sprite-signArrowSide); }
 .signpost.point-right { transform: scaleX(-1); }
 .signpost.point-up { background-image: var(--sprite-signArrowUp); }
 
-/* The three ways out of the lobby are shop entrances, colour-coded per level. */
+/* Colour-coded per level. */
 .path-1 { background-image: var(--sprite-store1); }
 .path-2 { background-image: var(--sprite-store2); }
 .path-3 { background-image: var(--sprite-store3); }
 
-/* A locked shop is shuttered: drained of colour and barred across the front. */
+/* Shuttered: drained of colour and barred across the front. */
 .locked { filter: grayscale(1) brightness(.78); position: relative; }
 .locked::after {
   content: "";
@@ -168,7 +191,7 @@ body {
   );
 }
 
-/* Doorways sit in the wall band, so they are drawn as openings. */
+/* They sit in the wall band, so they are drawn as openings. */
 .door-hub,
 .door-exit,
 .door-castle {
@@ -185,8 +208,7 @@ body {
   box-shadow: inset 0 0 0 4px #e8d8a0;
 }
 
-/* Boss markers. Each boss carries its own id as a class, so giving one real
-   art is a single rule here — boss-3 keeps the placeholder blob. */
+/* Each boss carries its own id as a class, so art for one is a single rule. */
 /* Above the litter, so nothing dropped near a boss is drawn across them. */
 .boss { position: relative; z-index: 4; background-size: 48px 48px; }
 .boss-1 { background-image: var(--sprite-bossMannequin); }
@@ -212,12 +234,12 @@ body {
 }
 .boss.defeated { filter: grayscale(1) brightness(.65) opacity(.65); }
 
-/* The same art, larger, for the portrait in the fight panel. */
+/* The same art, larger, in the fight panel. */
 #battle-portrait.boss-1 { background-image: var(--sprite-bossMannequin); }
 #battle-portrait.boss-2 { background-image: var(--sprite-bossKim); }
 #battle-portrait.boss-3 { background-image: var(--sprite-bossJune); }
 
-/* One punch landing: a short shake, restarted from zero on every hit. */
+/* Restarted from zero on every hit, so fast punches each shake. */
 #battle-portrait.hit { animation: punch-shake 220ms steps(4, end); }
 @keyframes punch-shake {
   0%   { transform: translate(0, 0); }
@@ -227,7 +249,7 @@ body {
   100% { transform: translate(0, 0); }
 }
 
-/* --- title screen --------------------------------------------------------- */
+/* --- title screen --- */
 #menu {
   position: absolute;
   inset: 0;
@@ -261,9 +283,8 @@ body {
 }
 @keyframes menu-blink { 50% { opacity: .25; } }
 
-/* The other overlays here never set `display`, so the hidden attribute alone
-   does the work. This one has to centre its contents, and an id's display:flex
-   outweighs the attribute — so hiding it needs saying out loud. */
+/* The other overlays never set `display`, so `hidden` alone does the work. This
+   one centres its contents, and an id's display:flex outweighs the attribute. */
 #menu[hidden] { display: none; }
 
 #player {
@@ -275,8 +296,8 @@ body {
   z-index: 5;
   transition: transform 140ms linear; /* tile-snapped steps, tweened visually */
 }
-/* The sprite lives on ::after so facing-right can mirror it without fighting
-   the translate() that positions the player. */
+/* On ::after so facing-right can mirror it without fighting the translate()
+   that positions the player. */
 #player::after {
   content: "";
   position: absolute;
@@ -289,14 +310,14 @@ body {
 #player[data-facing="left"]::after  { background-image: var(--sprite-playerSide); }
 #player[data-facing="right"]::after { background-image: var(--sprite-playerSide); transform: scaleX(-1); }
 
-/* Outfits — set by boss rewards, one variable swap per facing. Add an outfit to
-   OUTFITS in data.js and add its three rules here. */
+/* One variable swap per facing. A new outfit is an entry in OUTFITS plus three
+   rules here. */
 #player[data-outfit="pinkSweats"]::after                      { background-image: var(--sprite-playerDown--pinkSweats); }
 #player[data-outfit="pinkSweats"][data-facing="up"]::after    { background-image: var(--sprite-playerUp--pinkSweats); }
 #player[data-outfit="pinkSweats"][data-facing="left"]::after  { background-image: var(--sprite-playerSide--pinkSweats); }
 #player[data-outfit="pinkSweats"][data-facing="right"]::after { background-image: var(--sprite-playerSide--pinkSweats); }
 
-/* --- overlays ------------------------------------------------------------- */
+/* --- overlays --- */
 #fade {
   position: absolute;
   inset: 0;
@@ -337,7 +358,7 @@ body {
   border-radius: 4px;
 }
 
-/* Boss portrait + name + hp bar, across the top of the panel. */
+/* Portrait, name and hp bar, across the top of the panel. */
 #battle-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 
 #battle-portrait {
@@ -368,8 +389,7 @@ body {
 
 #battle-hp-num { margin: 4px 0 0; font-size: 10px; color: #5c6b52; }
 
-/* What she is saying right now. Fixed height so the panel never jumps as the
-   lines change length. */
+/* Fixed height, so the panel never jumps as the lines change length. */
 #battle-text {
   margin: 0 0 8px;
   min-height: 34px;
@@ -387,7 +407,7 @@ body {
   border-radius: 3px;
 }
 
-/* Four answers in a 2x2 grid — reads as a menu, fits without scrolling. */
+/* 2x2: reads as a menu and fits without scrolling. */
 #battle-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 #battle-choices button {
   display: flex;
@@ -415,7 +435,7 @@ body {
 #battle-choices button.selected {
   box-shadow: inset 0 0 0 3px #2f8b4c;
 }
-/* Already tried and wrong — still clickable, just visibly spent. */
+/* Tried and wrong: still clickable, just visibly spent. */
 #battle-choices button.ruled-out {
   color: #96a08c;
   background: #e0e4d6;
@@ -430,7 +450,7 @@ body {
 }
 @keyframes blink { 50% { opacity: .25; } }
 
-/* --- castle: fireworks + banner ------------------------------------------- */
+/* --- castle: fireworks + banner --- */
 #fireworks {
   position: absolute;
   inset: 0;
@@ -468,3 +488,129 @@ body {
 }
 #banner h1 { margin: 0; font-size: 17px; line-height: 1.5; }
 #banner p  { margin: 10px 0 0; font-size: 11px; color: #9fb08d; }
+
+/* --- touch controls -------------------------------------------------------
+   Hidden by default and unhidden by game.js on a coarse-pointer device. These
+   sit OUTSIDE #game, so they are never scaled down with the art — a thumb
+   needs the same 60-odd pixels whatever size the stage has been shrunk to. */
+#touch {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  max-width: 460px;
+  padding: 0 6px env(safe-area-inset-bottom);
+  touch-action: none;   /* the pad handles its own gestures; nothing scrolls */
+}
+#touch[hidden] { display: none; }
+
+#dpad {
+  position: relative;
+  flex: 0 0 auto;
+  width: 168px;
+  height: 168px;
+}
+
+.pad, #btn-a {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  border: 3px solid #3d4a3a;
+  border-radius: 8px;
+  background: #2b3040;
+  color: var(--paper);
+  font: inherit;
+  touch-action: none;
+}
+.pad {
+  width: 56px;
+  height: 56px;
+}
+.pad-up    { left: 56px; top: 0; }
+.pad-left  { left: 0; top: 56px; }
+.pad-right { left: 112px; top: 56px; }
+.pad-down  { left: 56px; top: 112px; }
+
+/* The arrow itself — a CSS triangle, so there is no extra sprite to ship. */
+.pad::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: 11px solid transparent;
+}
+.pad-up::after    { transform: translate(-50%, -50%) translateY(-3px); border-bottom-color: var(--paper); }
+.pad-down::after  { transform: translate(-50%, -50%) translateY(3px);  border-top-color: var(--paper); }
+.pad-left::after  { transform: translate(-50%, -50%) translateX(-3px); border-right-color: var(--paper); }
+.pad-right::after { transform: translate(-50%, -50%) translateX(3px);  border-left-color: var(--paper); }
+
+#btn-a {
+  position: relative;
+  flex: 0 0 auto;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border-color: #6b3a52;
+  background: #a33c6b;
+  font-size: 26px;
+  letter-spacing: .04em;
+}
+
+/* Pressed state. Driven by a class, not :active — a finger that slides off a
+   button still has to look released, and :active does not track that. */
+.pad.held  { background: #3f4759; }
+#btn-a.held { background: #7d2c51; transform: scale(.94); }
+
+/* --- touch: readable overlay type -----------------------------------------
+   On a phone the whole stage is scaled to roughly half size, which would take
+   13px battle copy down to about 7px. The pixel art can take that; words
+   cannot. So on touch the overlay text is sized up by about the same factor it
+   is then scaled down by, landing back at a readable size on the glass. */
+body.touch #hint          { font-size: 19px; }
+body.touch #menu-sub      { font-size: 22px; }
+body.touch #menu-start    { font-size: 19px; }
+body.touch #toast         { font-size: 20px; }
+body.touch #battle-name   { font-size: 20px; }
+body.touch #battle-hp-num { font-size: 17px; }
+body.touch #battle-text   { font-size: 21px; min-height: 56px; }
+body.touch #battle-ask    { font-size: 21px; }
+body.touch #battle-prompt { font-size: 17px; }
+body.touch #battle-choices button   { font-size: 21px; padding: 12px 14px; }
+body.touch #battle-choices button b { width: 26px; font-size: 17px; }
+body.touch #banner h1     { font-size: 27px; }
+body.touch #banner p      { font-size: 18px; }
+
+/* Choices stack on a narrow stage: two columns of scaled-up text would wrap
+   mid-answer, and a stacked row is also a bigger target for a thumb. */
+body.touch #battle-choices { grid-template-columns: 1fr; gap: 6px; }
+
+/* --- touch, landscape -----------------------------------------------------
+   Held sideways there is no vertical room to spare: a pad below the stage would
+   squeeze the art down to a third of its size. So it is lifted out of the flow
+   and floated over the bottom of the screen, where the scaled stage leaves a
+   wide empty gutter on either side for it to sit in. */
+@media (orientation: landscape) {
+  body.touch #touch {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-width: none;
+    padding: 0 14px 14px;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+    z-index: 50;
+    pointer-events: none;   /* only the buttons themselves take taps */
+  }
+  body.touch #dpad { width: 150px; height: 150px; }
+  body.touch .pad  { width: 50px; height: 50px; }
+  body.touch .pad-up    { left: 50px; top: 0; }
+  body.touch .pad-left  { left: 0; top: 50px; }
+  body.touch .pad-right { left: 100px; top: 50px; }
+  body.touch .pad-down  { left: 50px; top: 100px; }
+  body.touch #btn-a { width: 74px; height: 74px; font-size: 23px; }
+
+  /* Over the stage rather than under it, so they never fully hide the art. */
+  body.touch #touch button { pointer-events: auto; opacity: .88; }
+}

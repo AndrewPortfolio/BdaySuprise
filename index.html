@@ -2,53 +2,67 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Scavenger Hunt</title>
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-  <div id="game">
-    <!-- Fixed-size window into the current stage. Stages larger than this scroll. -->
-    <div id="viewport">
-      <div id="stage"></div>
+  <!-- #fit is sized to the scaled game; #game itself keeps its natural
+       720x528 layout and is shrunk to fit as one piece. -->
+  <div id="fit">
+    <div id="game">
+      <div id="viewport">
+        <div id="stage"></div>
 
-      <!-- Overlays, all positioned over the viewport -->
-      <div id="toast" hidden></div>
+        <div id="toast" hidden></div>
 
-      <!-- Boss fight. Built from BOSSES[] in data.js; hidden outside a fight. -->
-      <div id="battle" hidden>
-        <div id="battle-head">
-          <div id="battle-portrait"></div>
-          <div id="battle-meta">
-            <p id="battle-name"></p>
-            <div id="battle-hp"><span id="battle-hp-fill"></span></div>
-            <p id="battle-hp-num"></p>
+        <!-- Built from BOSSES[] in data.js. -->
+        <div id="battle" hidden>
+          <div id="battle-head">
+            <div id="battle-portrait"></div>
+            <div id="battle-meta">
+              <p id="battle-name"></p>
+              <div id="battle-hp"><span id="battle-hp-fill"></span></div>
+              <p id="battle-hp-num"></p>
+            </div>
           </div>
+          <p id="battle-text"></p>
+          <p id="battle-ask" hidden></p>
+          <div id="battle-choices" hidden></div>
+          <p id="battle-prompt" hidden></p>
         </div>
-        <p id="battle-text"></p>
-        <p id="battle-ask" hidden></p>
-        <div id="battle-choices" hidden></div>
-        <p id="battle-prompt" hidden></p>
+
+        <div id="fireworks" hidden></div>
+
+        <div id="banner" hidden>
+          <h1 id="banner-text"></h1>
+          <p id="banner-sub">press any key to replay</p>
+        </div>
+
+        <!-- Sits over everything until she presses Enter. -->
+        <div id="menu">
+          <h1 id="menu-title">Mall Quest</h1>
+          <p id="menu-sub">Defeat the Bosses to receive a prize</p>
+          <p id="menu-start">press Enter to start playing</p>
+        </div>
+
+        <div id="fade"></div>
       </div>
 
-      <div id="fireworks" hidden></div>
-
-      <div id="banner" hidden>
-        <h1 id="banner-text"></h1>
-        <p id="banner-sub">press any key to replay</p>
-      </div>
-
-      <!-- Title screen. Sits over everything until she presses Enter. -->
-      <div id="menu">
-        <h1 id="menu-title">Mall Quest</h1>
-        <p id="menu-sub">Defeat the Bosses to receive a prize</p>
-        <p id="menu-start">press Enter to start playing</p>
-      </div>
-
-      <div id="fade"></div>
+      <p id="hint">Arrow keys to move &middot; walk into a path, door or boss to interact</p>
     </div>
+  </div>
 
-    <p id="hint">Arrow keys to move &middot; walk into a path, door or boss to interact</p>
+  <!-- Touch controls. Unhidden by game.js only on a coarse-pointer device; the
+       buttons feed the same key handling the keyboard does. -->
+  <div id="touch" hidden>
+    <div id="dpad">
+      <button class="pad pad-up" data-key="ArrowUp" aria-label="Move up"></button>
+      <button class="pad pad-left" data-key="ArrowLeft" aria-label="Move left"></button>
+      <button class="pad pad-right" data-key="ArrowRight" aria-label="Move right"></button>
+      <button class="pad pad-down" data-key="ArrowDown" aria-label="Move down"></button>
+    </div>
+    <button id="btn-a" data-key="Enter" aria-label="Action">A</button>
   </div>
 
   <script src="./data.js"></script>
