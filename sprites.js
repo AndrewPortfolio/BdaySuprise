@@ -28,8 +28,17 @@ const PALETTE = {
   /* Skims Boss — same mannequin, dark on dark */
   B: '#241d2b',                 // black hair
   b: '#4a3f56',                 // hair sheen / centre part
-  D: '#4f4956'                  // dark Skims dress — kept off the outline colour
+  D: '#4f4956',                 // dark Skims dress — kept off the outline colour
                                 //   so the silhouette does not go to one blob
+  /* Shop fittings. The five garment colours are the shop's own — they are
+     what SHOP_PALETTES swaps to give each store its colourway. */
+  m: '#a8b0bd',                 // chrome rail / shelf board
+  n: '#6a7280',                 // chrome in shadow — posts, feet, frame
+  '1': '#f4a6c0',
+  '2': '#f6d9a0',
+  '3': '#bcd9f0',
+  '4': '#d9c2ee',
+  '5': '#f6f2ea'
 };
 
 const SPRITES = {
@@ -131,6 +140,46 @@ const SPRITES = {
     '.....XMMMMX.....',
     '......XppX......',
     '...XAAAAAAAAX...'
+  ],
+  /* Shop fittings. Both are wider than one tile — a rail of clothes reads as a
+     rail only when it actually runs the length of a wall — so they are drawn
+     from the stage's prop list over tiles the map marks solid, the same way
+     the castle artwork is. */
+  clothingRack: [
+    '................................................',
+    '....nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn....',
+    '....mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm....',
+    '....n..mm...mm...mm...mm...mm...mm...mm....n....',
+    '....n..11...22...33...44...55...11...33....n....',
+    '....n.1111.2222.3333.4444.5555.1111.3333...n....',
+    '....n.1111.2222.3333.4444.5555.1111.3333...n....',
+    '....n.1111.2222.3333.4444.5555.1111.3333...n....',
+    '....n.1111.2222.3333.4444.5555.1111.3333...n....',
+    '....n.1111.2222.3333.4444.5555.1111.3333...n....',
+    '....n.1111.2222.3333.4444.5555.1111.3333...n....',
+    '....n.1111.2222......4444.5555.1111........n....',
+    '....n......2222......4444......1111........n....',
+    '....n................4444..................n....',
+    '..nnnnn..................................nnnnn..',
+    '..KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK..',
+  ],
+  clothesStack: [
+    '................................',
+    '.n.33333333.11111111.44444444.n.',
+    '.n.n333333n.n111111n.n444444n.n.',
+    '.n..222222...555555...333333..n.',
+    '.n..n2222n...n5555n...n3333n..n.',
+    '.n.11111111.44444444.22222222.n.',
+    '.n.n111111n.n444444n.n222222n.n.',
+    '.mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm.',
+    '.n............................n.',
+    '.n..222222...444444...111111..n.',
+    '.n..n2222n...n4444n...n1111n..n.',
+    '.n.11111111.33333333.55555555.n.',
+    '.n.n111111n.n333333n.n555555n.n.',
+    '.mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm.',
+    '.nnnnnnnnnnnnnnnnnnnnnnnnnnnnnn.',
+    'KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK',
   ],
   /* Player, one sprite per facing. Right is the left sprite mirrored in CSS. */
   playerDown: [
@@ -239,6 +288,23 @@ function makeGroundTexture() {
 /* Awning colour per destination: Level 1, Level 2, Level 3. */
 const STORE_COLORS = ['#6bbf7a', '#5a9fd4', '#c77fb5'];
 
+/* What is on the racks, per shop. Brandy is pastels — the sprite's own
+   colours — and Skims is its neutrals, so the two rooms read as two different
+   stores without a second set of sprites. */
+const SHOP_PALETTES = {
+  brandy: null,
+  skims: {
+    '1': '#3a3540',   // onyx
+    '2': '#c4ab97',   // sand
+    '3': '#8a7f76',   // clay
+    '4': '#5c5560',   // slate
+    '5': '#e3d5c8'    // bone
+  }
+};
+
+/* Sprites that get one rasterization per shop colourway. */
+const PROP_SPRITES = ['clothingRack', 'clothesStack'];
+
 /* Which sprites get re-rasterized once per outfit. */
 const PLAYER_SPRITES = ['playerDown', 'playerUp', 'playerSide'];
 
@@ -258,6 +324,13 @@ function installSprites() {
     const palette = OUTFITS[outfit].palette;
     PLAYER_SPRITES.forEach(function (name) {
       root.setProperty('--sprite-' + name + '--' + outfit, rasterize(SPRITES[name], palette));
+    });
+  }
+  /* One variable per prop per shop: --sprite-clothingRack--skims and friends. */
+  for (const shop in SHOP_PALETTES) {
+    PROP_SPRITES.forEach(function (name) {
+      root.setProperty('--sprite-' + name + '--' + shop,
+                       rasterize(SPRITES[name], SHOP_PALETTES[shop]));
     });
   }
   root.setProperty('--ground-texture', makeGroundTexture());

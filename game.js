@@ -260,7 +260,7 @@ function tileClasses(ch, stage) {
     /* The Level 3 second exit is indistinguishable from wall until every boss
        is down; then it opens up as a separate door from the Hub entrance. */
     classes.push(allBossesDefeated() ? 'door door-exit' : 'wall');
-  } else if (ch === 'K' || ch === 'G') {
+  } else if (ch === 'K' || ch === 'G' || ch === 'x') {
     classes.push('castle-block');   // artwork covers these; no tile fill
   } else if (ch === 'P') {
     /* Points at whichever shop is open next; -1 (all done) leaves it pointing
@@ -293,6 +293,35 @@ function buildStage(stage) {
       stageEl.appendChild(tile);
     }
   }
+  /* Shop fittings: sprite artwork over the tiles the map marked solid. */
+  if (stage.props) {
+    stage.props.forEach(function (prop) {
+      const art = document.createElement('div');
+      art.className = 'prop';
+      art.style.left = prop.x * TILE + 'px';
+      art.style.top = prop.y * TILE + 'px';
+      art.style.width = prop.w * TILE + 'px';
+      art.style.height = prop.h * TILE + 'px';
+      art.style.backgroundImage =
+        'var(--sprite-' + prop.sprite + (prop.shop ? '--' + prop.shop : '') + ')';
+      stageEl.appendChild(art);
+    });
+  }
+
+  /* Shop signs: real text, so the names are readable at this tile size. */
+  if (stage.signs) {
+    stage.signs.forEach(function (sign) {
+      const board = document.createElement('div');
+      /* Deliberately not the storefront's `locked` class: that one carries a
+         position and a shutter overlay meant for a tile. */
+      board.className = 'shop-sign' + (pathUnlocked(sign.path) ? '' : ' shut');
+      board.textContent = sign.label;
+      board.style.left = (sign.x + 0.5) * TILE + 'px';
+      board.style.top = sign.y * TILE + 'px';
+      stageEl.appendChild(board);
+    });
+  }
+
   if (stage.structure) {
     const art = document.createElement('div');
     art.className = 'structure';
@@ -677,6 +706,7 @@ function tryStep(dx, dy) {
   }
 
   if (ch === 'K') return;                 // castle walls
+  if (ch === 'x') return;                 // racks and shelves are furniture
   if (ch === 'G') {
     if (!state.hasKey) {
       playSound('locked');

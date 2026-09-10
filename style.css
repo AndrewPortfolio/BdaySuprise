@@ -83,6 +83,37 @@ body {
 /* Tiles under a piece of stage artwork: solid to walk into, but never painted. */
 .castle-block { background: none; }
 
+/* Shop fittings — rails and folded stacks, drawn over the solid tiles beneath
+   them. Below the player, so she passes in front of a rack, never through it. */
+.prop {
+  position: absolute;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  z-index: 2;
+}
+
+/* The board naming a shop. Centred on its tile and allowed to overhang it —
+   'Brandy Melville' is wider than 48px and shortening it would be worse. */
+.shop-sign {
+  position: absolute;
+  z-index: 3;
+  transform: translateX(-50%);
+  padding: 3px 7px;
+  white-space: nowrap;
+  font-size: 10px;
+  letter-spacing: .04em;
+  color: var(--paper);
+  background: #2b3040;
+  border: 2px solid #6b7286;
+  border-radius: 3px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, .25);
+  pointer-events: none;
+}
+
+/* A shuttered shop's sign is dimmed with it. */
+.shop-sign.shut { filter: grayscale(1) brightness(.72); opacity: .85; }
+
 /* Stage artwork spanning a block of tiles. pinkCastle.png has no alpha channel,
    so multiply drops its white background onto the ground instead of stamping a
    white box over it. */

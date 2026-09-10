@@ -28,6 +28,7 @@ const CORRIDOR_DIR = { x: 0, y: 1 };
      E  Level 3 secret exit (hidden until all 3 bosses are down)
      C  corridor end -> Castle
      K  castle wall (solid)       G  castle gate — walk in to unlock the ending
+     x  shop fitting (solid; the art over it comes from the stage's prop list)
    --------------------------------------------------------------------------- */
 
 /* Hub: paths arranged in a triangle — Level 1 lower-left, Level 2 lower-right,
@@ -61,18 +62,35 @@ const HUB_MAP = [
 
 /* Level rooms are all the same shape: boss at the top, door back to the Hub at
    the bottom. `withExit` adds the Level 3-only second door on the right wall.
-   11x9 tiles — smaller than the viewport, so the camera stays put here. */
-function makeRoomMap(withExit) {
+   11x9 tiles — smaller than the viewport, so the camera stays put here.
+
+   `shopFittings` fills the two clothing shops out: rails down both side walls
+   and folded stacks below them. They are solid, and the column she walks up to
+   reach the boss stays clear. The art sits in the stage's `props`. */
+function makeRoomMap(withExit, shopFittings) {
+  const racks  = shopFittings ? '#xxx...xxx#' : '#.........#';
+  const stacks = shopFittings ? '#xx.....xx#' : '#.........#';
   return [
     '###########',
     '#.........#',
     '#....B....#',
-    '#.........#',
+    racks,
     withExit ? '#.........E' : '#.........#',
     '#.........#',
-    '#.........#',
+    stacks,
     '#.........#',
     '#####D#####'
+  ];
+}
+
+/* The fittings for one shop, in the layout makeRoomMap marks solid above.
+   `shop` picks the colourway the racks are rasterized in. */
+function shopProps(shop) {
+  return [
+    { sprite: 'clothingRack', shop: shop, x: 1, y: 3, w: 3, h: 1 },
+    { sprite: 'clothingRack', shop: shop, x: 7, y: 3, w: 3, h: 1 },
+    { sprite: 'clothesStack', shop: shop, x: 1, y: 6, w: 2, h: 1 },
+    { sprite: 'clothesStack', shop: shop, x: 8, y: 6, w: 2, h: 1 }
   ];
 }
 
@@ -280,21 +298,31 @@ const STAGES = {
     id: 'hub',
     name: 'Hub',
     map: HUB_MAP,
-    spawn: { x: 11, y: 21 }
+    spawn: { x: 11, y: 21 },
+    /* The board naming each shop, on the floor tile she walks up to it from —
+       above the two lower doors, below the one at the apex. A sign greys out
+       with its shop while that shop is still shuttered. */
+    signs: [
+      { path: '1', label: 'Brandy Melville', x: 1,  y: 16 },
+      { path: '2', label: 'Skims',           x: 21, y: 16 },
+      { path: '3', label: "June's Store",    x: 11, y: 2  }
+    ]
   },
   level1: {
     id: 'level1',
     name: 'Level 1',
-    map: makeRoomMap(false),
+    map: makeRoomMap(false, true),
     spawn: { x: 5, y: 7 },
-    boss: 0
+    boss: 0,
+    props: shopProps('brandy')
   },
   level2: {
     id: 'level2',
     name: 'Level 2',
-    map: makeRoomMap(false),
+    map: makeRoomMap(false, true),
     spawn: { x: 5, y: 7 },
-    boss: 1
+    boss: 1,
+    props: shopProps('skims')
   },
   level3: {
     id: 'level3',
