@@ -24,7 +24,12 @@ const PALETTE = {
   Y: '#e6c56f',                 // blonde bob
   M: '#e3cdb8',                 // mannequin plastic
   R: '#c95d7e',                 // pursed lip
-  Q: '#FFA3C7'                  // the pink sweats she is guarding
+  Q: '#FFA3C7',                 // the pink sweats she is guarding
+  /* Skims Boss — same mannequin, dark on dark */
+  B: '#241d2b',                 // black hair
+  b: '#4a3f56',                 // hair sheen / centre part
+  D: '#4f4956'                  // dark Skims dress — kept off the outline colour
+                                //   so the silhouette does not go to one blob
 };
 
 const SPRITES = {
@@ -102,6 +107,27 @@ const SPRITES = {
     '...XMMWWWWMMX...',
     '....XMQQQQMX....',
     '....XMQQQQMX....',
+    '.....XMMMMX.....',
+    '......XppX......',
+    '...XAAAAAAAAX...'
+  ],
+  /* Skims Boss: the same mannequin on the same stand, so the two read as one
+     shop chain — black hair worn long past the shoulders instead of the blonde
+     bob, and a dark dress where the Brandy one holds the pink sweats. */
+  bossKim: [
+    '................',
+    '.....BBBBBB.....',
+    '....BBbbbbBB....',
+    '....BBMMMMBB....',
+    '....BBMEMEBB....',
+    '....BBMMMMBB....',
+    '....BBMRRMBB....',
+    '....BbMMMMbB....',
+    '...BBbMMMMbBB...',
+    '...XBDDMMDDBX...',
+    '...XBDDDDDDBX...',
+    '....XDDDDDDX....',
+    '....XDDDDDDX....',
     '.....XMMMMX.....',
     '......XppX......',
     '...XAAAAAAAAX...'

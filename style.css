@@ -142,10 +142,10 @@ body {
 }
 
 /* Boss markers. Each boss carries its own id as a class, so giving one real
-   art is a single rule here — boss-2 and boss-3 keep the placeholder blob. */
+   art is a single rule here — boss-3 keeps the placeholder blob. */
 .boss { background-size: 48px 48px; }
 .boss-1 { background-image: var(--sprite-bossMannequin); }
-.boss-2,
+.boss-2 { background-image: var(--sprite-bossKim); }
 .boss-3 {
   background-image:
     radial-gradient(circle at 38% 32%, #ff9a8a 0 12%, rgba(255, 154, 138, 0) 45%),
@@ -155,11 +155,21 @@ body {
 
 /* The same art, larger, for the portrait in the fight panel. */
 #battle-portrait.boss-1 { background-image: var(--sprite-bossMannequin); }
-#battle-portrait.boss-2,
+#battle-portrait.boss-2 { background-image: var(--sprite-bossKim); }
 #battle-portrait.boss-3 {
   background-image:
     radial-gradient(circle at 38% 32%, #ff9a8a 0 12%, rgba(255, 154, 138, 0) 45%),
     radial-gradient(circle at 50% 55%, #d64b4b 0 40%, #7a1e1e 41% 62%, rgba(0, 0, 0, 0) 64%);
+}
+
+/* One punch landing: a short shake, restarted from zero on every hit. */
+#battle-portrait.hit { animation: punch-shake 220ms steps(4, end); }
+@keyframes punch-shake {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(5px, -2px); }
+  50%  { transform: translate(-4px, 2px); }
+  75%  { transform: translate(3px, 1px); }
+  100% { transform: translate(0, 0); }
 }
 
 #player {
